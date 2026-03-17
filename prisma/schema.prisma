@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Artist {
+  id          String   @id @default(cuid())
+  name        String
+  style       String?
+  preferences Json?
+  goals       String?
+  bio         String?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  connections   PlatformConnection[]
+  snapshots     MetricsSnapshot[]
+  manualMetrics ManualMetrics[]
+  chatMessages  ChatMessage[]
+}
+
+enum Platform {
+  YOUTUBE
+  INSTAGRAM
+  SPOTIFY
+}
+
+enum ConnectionStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+  ERROR
+}
+
+model PlatformConnection {
+  id           String           @id @default(cuid())
+  artistId     String
+  platform     Platform
+  accessToken  String
+  refreshToken String?
+  tokenExpiry  DateTime?
+  externalId   String?
+  displayName  String?
+  status       ConnectionStatus @default(ACTIVE)
+  scopes       String?
+  metadata     Json?
+  connectedAt  DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@unique([artistId, platform])
+  @@index([artistId])
+}
+
+model MetricsSnapshot {
+  id             String   @id @default(cuid())
+  artistId       String
+  platform       Platform
+  date           DateTime @db.Date
+  followers      Int?
+  totalViews     Int?
+  totalLikes     Int?
+  totalComments  Int?
+  totalShares    Int?
+  engagementRate Float?
+  platformData   Json?
+  collectedAt    DateTime @default(now())
+
+  artist          Artist           @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  contentMetrics  ContentMetrics[]
+  audienceMetrics AudienceMetrics?
+
+  @@unique([artistId, platform, date])
+  @@index([artistId, platform])
+  @@index([date])
+}
+
+model ContentMetrics {
+  id           String    @id @default(cuid())
+  snapshotId   String
+  contentId    String
+  contentType  String
+  title        String?
+  thumbnailUrl String?
+  publishedAt  DateTime?
+  url          String?
+  views        Int?
+  likes        Int?
+  comments     Int?
+  shares       Int?
+  saves        Int?
+  platformData Json?
+
+  snapshot MetricsSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  @@index([snapshotId])
+  @@index([contentId])
+}
+
+model AudienceMetrics {
+  id           String @id @default(cuid())
+  snapshotId   String @unique
+  ageRanges    Json?
+  genderSplit  Json?
+  topCountries Json?
+  topCities    Json?
+
+  snapshot MetricsSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+}
+
+model ManualMetrics {
+  id       String   @id @default(cuid())
+  artistId String
+  platform String
+  date     DateTime @db.Date
+  data     Json?
+  notes    String?
+
+  createdAt DateTime @default(now())
+
+  artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@index([artistId])
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  artistId  String
+  role      ChatRole
+  content   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@index([artistId, createdAt])
+}
