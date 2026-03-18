@@ -263,20 +263,20 @@ export function ChatClient({ initialMessages }: ChatClientProps) {
   const isEmpty = messages.length === 0;
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col md:h-[calc(100vh-6rem)]">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-4">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/30 to-fuchsia-500/20">
-            <MessageSquare className="size-5 text-violet-400" />
+    <div className="flex h-[calc(100vh-10rem)] flex-col pb-safe md:h-[calc(100vh-6.5rem)]">
+      {/* Header — compacto */}
+      <div className="flex items-center justify-between pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-zinc-800">
+            <MessageSquare className="size-4 text-zinc-400" />
           </div>
-          <div>
-            <h1 className="text-lg font-semibold text-zinc-100">
+          <div className="min-w-0">
+            <h1 className="truncate text-sm font-semibold text-zinc-100 sm:text-base">
               Sua Equipe de Marketing
             </h1>
             <div className="flex items-center gap-1.5">
               <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-              <p className="text-xs text-zinc-500">Online — Dedicada à Débora Kailany</p>
+              <p className="truncate text-[10px] text-zinc-500 sm:text-xs">Online — Dedicada à Débora Kailany</p>
             </div>
           </div>
         </div>
@@ -285,7 +285,7 @@ export function ChatClient({ initialMessages }: ChatClientProps) {
             variant="ghost"
             size="sm"
             onClick={() => setClearDialogOpen(true)}
-            className="text-zinc-500 hover:text-red-400"
+            className="shrink-0 text-zinc-500 hover:text-red-400"
           >
             <Trash2 className="size-4" />
             <span className="ml-1.5 hidden sm:inline">Limpar</span>
@@ -296,25 +296,25 @@ export function ChatClient({ initialMessages }: ChatClientProps) {
       {/* Messages area */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto rounded-2xl border border-white/5 bg-zinc-950/50 p-4 backdrop-blur"
+        className="flex-1 overflow-y-auto overscroll-contain rounded-xl border border-zinc-800 bg-zinc-950/50 p-3 sm:rounded-2xl sm:p-4"
       >
         {isEmpty ? (
-          <div className="flex h-full flex-col items-center justify-center gap-6">
+          <div className="flex h-full flex-col items-center justify-center gap-4 px-2 sm:gap-6">
             {/* Welcome */}
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="flex size-20 items-center justify-center rounded-3xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10"
+              className="flex size-14 items-center justify-center rounded-2xl bg-zinc-800 sm:size-20 sm:rounded-3xl"
             >
-              <Sparkles className="size-10 text-violet-400" />
+              <Sparkles className="size-7 text-zinc-400 sm:size-10" />
             </motion.div>
-            <div className="max-w-lg space-y-2 text-center">
-              <h2 className="text-xl font-semibold text-zinc-100">
-                Débora, sua equipe de marketing está pronta
+            <div className="max-w-lg space-y-1.5 text-center sm:space-y-2">
+              <h2 className="text-base font-semibold text-zinc-100 sm:text-xl">
+                Débora, sua equipe está pronta
               </h2>
-              <p className="text-sm leading-relaxed text-zinc-400">
-                Somos seu time dedicado: diretor de marketing, social media, analista de dados, estrategista de conteúdo e especialista em Spotify. Pesquisamos dados reais sobre você, analisamos seus posts e montamos planos de ação sob medida para sua carreira.
+              <p className="text-xs leading-relaxed text-zinc-400 sm:text-sm">
+                Diretor de marketing, social media, analista de dados e especialista em Spotify. Pesquisamos dados reais e montamos planos de ação sob medida.
               </p>
             </div>
 
@@ -355,36 +355,38 @@ export function ChatClient({ initialMessages }: ChatClientProps) {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.25 }}
-                  className={`flex gap-3 ${
+                  className={`flex gap-2 sm:gap-3 ${
                     msg.role === "USER" ? "justify-end" : "justify-start"
                   }`}
                 >
-                  {/* Assistant avatar */}
+                  {/* Assistant avatar — hidden on very small screens */}
                   {msg.role === "ASSISTANT" && (
-                    <div className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10">
-                      <Bot className="size-4 text-violet-400" />
+                    <div className="mt-1 hidden size-7 shrink-0 items-center justify-center rounded-lg bg-zinc-800 sm:flex sm:size-8 sm:rounded-xl">
+                      <Bot className="size-3.5 text-zinc-400 sm:size-4" />
                     </div>
                   )}
 
                   {/* Message bubble */}
                   <div
-                    className={`text-sm leading-relaxed ${
+                    className={`min-w-0 text-sm leading-relaxed ${
                       msg.role === "USER"
-                        ? "max-w-[75%] rounded-2xl rounded-br-md bg-violet-600/20 px-4 py-2.5 text-zinc-100"
-                        : "max-w-[85%] rounded-2xl rounded-bl-md border border-white/5 bg-zinc-900/80 px-5 py-4"
+                        ? "max-w-[85%] rounded-2xl rounded-br-md bg-zinc-800 px-3 py-2 text-zinc-100 sm:max-w-[75%] sm:px-4 sm:py-2.5"
+                        : "max-w-[95%] rounded-2xl rounded-bl-md border border-zinc-800 bg-zinc-900/80 px-3 py-3 sm:max-w-[85%] sm:px-5 sm:py-4"
                     }`}
                   >
                     {msg.role === "USER" ? (
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                      <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                     ) : (
-                      <RichMessage content={msg.content} />
+                      <div className="overflow-x-auto">
+                        <RichMessage content={msg.content} />
+                      </div>
                     )}
                   </div>
 
-                  {/* User avatar */}
+                  {/* User avatar — hidden on very small screens */}
                   {msg.role === "USER" && (
-                    <div className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-xl bg-zinc-800">
-                      <User className="size-4 text-zinc-400" />
+                    <div className="mt-1 hidden size-7 shrink-0 items-center justify-center rounded-lg bg-zinc-800 sm:flex sm:size-8 sm:rounded-xl">
+                      <User className="size-3.5 text-zinc-400 sm:size-4" />
                     </div>
                   )}
                 </motion.div>
@@ -396,14 +398,14 @@ export function ChatClient({ initialMessages }: ChatClientProps) {
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3"
+                className="flex items-center gap-2 sm:gap-3"
               >
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10">
-                  <Bot className="size-4 text-violet-400" />
+                <div className="hidden size-7 shrink-0 items-center justify-center rounded-lg bg-zinc-800 sm:flex sm:size-8 sm:rounded-xl">
+                  <Bot className="size-3.5 text-zinc-400 sm:size-4" />
                 </div>
-                <div className="flex items-center gap-2 rounded-2xl rounded-bl-md border border-white/5 bg-zinc-900/80 px-5 py-3">
-                  <Loader2 className="size-3.5 animate-spin text-violet-400" />
-                  <span className="text-xs text-zinc-500">Pesquisando e analisando...</span>
+                <div className="flex items-center gap-2 rounded-2xl rounded-bl-md border border-zinc-800 bg-zinc-900/80 px-4 py-2.5 sm:px-5 sm:py-3">
+                  <Loader2 className="size-3.5 animate-spin text-zinc-400" />
+                  <span className="text-xs text-zinc-500">Analisando...</span>
                 </div>
               </motion.div>
             )}
@@ -412,23 +414,22 @@ export function ChatClient({ initialMessages }: ChatClientProps) {
       </div>
 
       {/* Input area */}
-      <div className="flex items-end gap-2 pt-3">
+      <div className="flex items-end gap-2 pt-2 sm:pt-3">
         <div className="relative flex-1">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Pergunte sobre as métricas da Débora, estratégias, planos..."
+            placeholder="Pergunte sobre métricas, estratégias..."
             disabled={isSending}
-            className="min-h-[48px] max-h-32 resize-none rounded-xl border-white/5 bg-zinc-900/80 pr-12 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-violet-500/30"
+            className="min-h-[44px] max-h-28 resize-none rounded-xl border-zinc-800 bg-zinc-900 text-sm text-zinc-100 placeholder:text-zinc-600 sm:min-h-[48px] sm:max-h-32"
             rows={1}
           />
         </div>
         <Button
           onClick={() => handleSend()}
           disabled={!input.trim() || isSending}
-          size="lg"
-          className="h-12 shrink-0 rounded-xl bg-violet-600 px-4 text-white transition hover:bg-violet-500"
+          className="h-[44px] shrink-0 rounded-xl bg-zinc-100 px-3 text-zinc-900 transition hover:bg-white sm:h-12 sm:px-4"
         >
           {isSending ? (
             <Loader2 className="size-4 animate-spin" />
