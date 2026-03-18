@@ -27,35 +27,22 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   TrendingUp,
   TrendingDown,
   Minus,
-  BarChart3,
-  PieChart as PieIcon,
-  Activity,
-  LineChart as LineIcon,
-  Radar as RadarIcon,
-  Target,
 } from "lucide-react";
 
-// ── Colors ──
+// ── Soft neutral palette ──
 
-const COLORS = [
-  "hsl(263, 70%, 58%)",   // violet
-  "hsl(187, 72%, 55%)",   // cyan
-  "hsl(349, 89%, 60%)",   // rose
-  "hsl(160, 60%, 45%)",   // emerald
-  "hsl(38, 92%, 60%)",    // amber
-  "hsl(217, 91%, 60%)",   // blue
-  "hsl(330, 81%, 60%)",   // pink
-  "hsl(172, 66%, 50%)",   // teal
+const PALETTE = [
+  "#a8a29e", // stone-400
+  "#d6d3d1", // stone-300
+  "#78716c", // stone-500
+  "#e7e5e4", // stone-200
+  "#57534e", // stone-600
+  "#c8c2bc", // warm gray
+  "#9c9590", // muted beige
+  "#b8b2ab", // soft taupe
 ];
 
 // ── Types ──
@@ -77,25 +64,25 @@ function buildConfig(keys: string[], colors: string[]): ChartConfig {
   const config: ChartConfig = {};
   keys.forEach((key, i) => {
     config[key] = {
-      label: key.charAt(0).toUpperCase() + key.slice(1),
+      label: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, " $1"),
       color: colors[i % colors.length],
     };
   });
   return config;
 }
 
-function formatVal(v: unknown): string {
+function fmt(v: unknown): string {
   if (typeof v !== "number") return String(v ?? "");
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
   if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
   return v.toLocaleString("pt-BR");
 }
 
-// ── Metric KPI Cards ──
+// ── KPI Metric Cards ──
 
 function MetricCards({ data }: { data: ChartData }) {
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {data.data.map((item, i) => {
         const label = (item.label ?? item.name ?? item.platform ?? "") as string;
         const value = (item.value ?? item.count ?? 0) as number;
@@ -104,71 +91,33 @@ function MetricCards({ data }: { data: ChartData }) {
         const isDown = change !== null && change < 0;
 
         return (
-          <Card key={i} className="border-white/5 bg-zinc-900/60 shadow-none">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-500">
-                  {label}
-                </p>
-                {change !== null && (
-                  <div
-                    className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                      isUp
-                        ? "bg-emerald-500/10 text-emerald-400"
-                        : isDown
-                          ? "bg-rose-500/10 text-rose-400"
-                          : "bg-zinc-500/10 text-zinc-500"
-                    }`}
-                  >
-                    {isUp ? (
-                      <TrendingUp className="size-2.5" />
-                    ) : isDown ? (
-                      <TrendingDown className="size-2.5" />
-                    ) : (
-                      <Minus className="size-2.5" />
-                    )}
-                    {isUp && "+"}
-                    {change}%
-                  </div>
+          <div
+            key={i}
+            className="rounded-xl border border-stone-200/10 bg-stone-100/[0.03] p-4"
+          >
+            <p className="text-[11px] font-medium text-stone-500">{label}</p>
+            <p className="mt-1.5 text-2xl font-semibold tracking-tight text-stone-200">
+              {fmt(value)}
+            </p>
+            {change !== null && (
+              <div className="mt-2 flex items-center gap-1">
+                {isUp ? (
+                  <TrendingUp className="size-3 text-stone-400" />
+                ) : isDown ? (
+                  <TrendingDown className="size-3 text-stone-500" />
+                ) : (
+                  <Minus className="size-3 text-stone-600" />
                 )}
+                <span
+                  className={`text-xs font-medium ${
+                    isUp ? "text-stone-300" : isDown ? "text-stone-500" : "text-stone-600"
+                  }`}
+                >
+                  {isUp && "+"}
+                  {change}%
+                </span>
               </div>
-              <p className="mt-1 text-xl font-bold tracking-tight text-white">
-                {formatVal(value)}
-              </p>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Comparison / Progress Bars ──
-
-function ComparisonBars({ data }: { data: ChartData }) {
-  const items = data.data;
-  const maxValue = Math.max(...items.map((d) => (d.value as number) || 0));
-
-  return (
-    <div className="space-y-3">
-      {items.map((item, i) => {
-        const label = (item.label ?? item.name ?? "") as string;
-        const value = (item.value ?? 0) as number;
-        const pct = maxValue > 0 ? (value / maxValue) * 100 : 0;
-        const color = data.colors?.[i] || COLORS[i % COLORS.length];
-
-        return (
-          <div key={i}>
-            <div className="mb-1 flex items-baseline justify-between">
-              <span className="text-xs font-medium text-zinc-300">{label}</span>
-              <span className="text-sm font-bold text-white">{formatVal(value)}</span>
-            </div>
-            <div className="h-2.5 overflow-hidden rounded-full bg-white/5">
-              <div
-                className="h-full rounded-full transition-all duration-1000 ease-out"
-                style={{ width: `${pct}%`, backgroundColor: color }}
-              />
-            </div>
+            )}
           </div>
         );
       })}
@@ -176,24 +125,38 @@ function ComparisonBars({ data }: { data: ChartData }) {
   );
 }
 
-// ── Chart Icon ──
+// ── Comparison Bars ──
 
-function ChartIcon({ type }: { type: string }) {
-  switch (type) {
-    case "pie":
-      return <PieIcon className="size-3.5 text-violet-400" />;
-    case "radar":
-      return <RadarIcon className="size-3.5 text-violet-400" />;
-    case "line":
-      return <LineIcon className="size-3.5 text-violet-400" />;
-    case "metric":
-      return <Activity className="size-3.5 text-violet-400" />;
-    case "comparison":
-    case "progress":
-      return <Target className="size-3.5 text-violet-400" />;
-    default:
-      return <BarChart3 className="size-3.5 text-violet-400" />;
-  }
+function ComparisonBars({ data }: { data: ChartData }) {
+  const items = data.data;
+  const maxValue = Math.max(...items.map((d) => (d.value as number) || 0));
+
+  return (
+    <div className="space-y-4">
+      {items.map((item, i) => {
+        const label = (item.label ?? item.name ?? "") as string;
+        const value = (item.value ?? 0) as number;
+        const pct = maxValue > 0 ? (value / maxValue) * 100 : 0;
+
+        return (
+          <div key={i}>
+            <div className="mb-1.5 flex items-baseline justify-between">
+              <span className="text-sm text-stone-400">{label}</span>
+              <span className="font-mono text-sm font-medium text-stone-300">
+                {fmt(value)}
+              </span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-stone-800/40">
+              <div
+                className="h-full rounded-full bg-stone-400/70 transition-all duration-1000 ease-out"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // ── Main Chart Renderer ──
@@ -204,168 +167,241 @@ export function InlineChart({ chartData }: { chartData: ChartData }) {
   const dataKeys =
     keys ||
     Object.keys(data[0] || {}).filter(
-      (k) => k !== xKey && k !== "name" && k !== "label" && k !== "change" && k !== "growth"
+      (k) =>
+        k !== xKey &&
+        k !== "name" &&
+        k !== "label" &&
+        k !== "change" &&
+        k !== "growth"
     );
-  const chartColors = colors || COLORS;
+  const chartColors = colors || PALETTE;
   const config = buildConfig(dataKeys, chartColors);
 
-  // For pie charts, build config from data names
   const pieConfig: ChartConfig = {};
   if (type === "pie") {
     data.forEach((item, i) => {
       const name = (item[xKey] ?? item.name ?? `item${i}`) as string;
-      pieConfig[name] = { label: name, color: chartColors[i % chartColors.length] };
+      pieConfig[name] = {
+        label: name,
+        color: chartColors[i % chartColors.length],
+      };
     });
   }
 
   return (
-    <Card className="my-3 border-white/5 bg-zinc-900/40 shadow-none">
+    <div className="my-4 overflow-hidden rounded-2xl border border-stone-300/10 bg-stone-900/20">
+      {/* Header */}
       {(title || description) && (
-        <CardHeader className="pb-2">
-          <div className="flex items-center gap-2">
-            <ChartIcon type={type} />
-            {title && (
-              <CardTitle className="text-sm font-semibold text-zinc-200">
-                {title}
-              </CardTitle>
-            )}
-          </div>
-          {description && (
-            <CardDescription className="text-xs">{description}</CardDescription>
+        <div className="border-b border-stone-300/5 px-5 py-3">
+          {title && (
+            <h4 className="text-[13px] font-semibold tracking-tight text-stone-300">
+              {title}
+            </h4>
           )}
-        </CardHeader>
+          {description && (
+            <p className="mt-0.5 text-[11px] text-stone-500">{description}</p>
+          )}
+        </div>
       )}
 
-      <CardContent className={title ? "pt-0" : ""}>
-        {/* Metric KPI Cards */}
+      {/* Body */}
+      <div className="p-5">
         {type === "metric" && <MetricCards data={chartData} />}
 
-        {/* Comparison / Progress Bars */}
         {(type === "comparison" || type === "progress") && (
           <ComparisonBars data={chartData} />
         )}
 
-        {/* Bar Chart */}
         {type === "bar" && (
           <ChartContainer config={config} className="min-h-[200px] w-full">
-            <BarChart data={data as Record<string, string | number>[]} accessibilityLayer>
-              <CartesianGrid vertical={false} />
+            <BarChart
+              data={data as Record<string, string | number>[]}
+              accessibilityLayer
+            >
+              <CartesianGrid
+                vertical={false}
+                stroke="rgba(168,162,158,0.08)"
+              />
               <XAxis
                 dataKey={xKey}
                 tickLine={false}
                 tickMargin={10}
                 axisLine={false}
-                tick={{ fontSize: 11 }}
+                tick={{ fontSize: 11, fill: "#78716c" }}
               />
-              <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 10 }} width={40} />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 10, fill: "#57534e" }}
+                width={40}
+              />
               <ChartTooltip content={<ChartTooltipContent />} />
-              {dataKeys.map((key, i) => (
+              {dataKeys.map((key) => (
                 <Bar
                   key={key}
                   dataKey={key}
                   fill={`var(--color-${key})`}
-                  radius={[6, 6, 0, 0]}
+                  radius={[4, 4, 0, 0]}
+                  opacity={0.85}
                 />
               ))}
             </BarChart>
           </ChartContainer>
         )}
 
-        {/* Line Chart */}
         {type === "line" && (
           <ChartContainer config={config} className="min-h-[200px] w-full">
-            <LineChart data={data as Record<string, string | number>[]} accessibilityLayer>
-              <CartesianGrid vertical={false} />
+            <LineChart
+              data={data as Record<string, string | number>[]}
+              accessibilityLayer
+            >
+              <CartesianGrid
+                vertical={false}
+                stroke="rgba(168,162,158,0.08)"
+              />
               <XAxis
                 dataKey={xKey}
                 tickLine={false}
                 tickMargin={10}
                 axisLine={false}
-                tick={{ fontSize: 11 }}
+                tick={{ fontSize: 11, fill: "#78716c" }}
               />
-              <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 10 }} width={40} />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 10, fill: "#57534e" }}
+                width={40}
+              />
               <ChartTooltip content={<ChartTooltipContent />} />
               {dataKeys.map((key) => (
                 <Line
                   key={key}
-                  type="natural"
+                  type="monotone"
                   dataKey={key}
                   stroke={`var(--color-${key})`}
-                  strokeWidth={2.5}
-                  dot={{ fill: `var(--color-${key})`, r: 4 }}
-                  activeDot={{ r: 6 }}
+                  strokeWidth={2}
+                  dot={{ fill: `var(--color-${key})`, r: 3, strokeWidth: 0 }}
+                  activeDot={{ r: 5, strokeWidth: 0 }}
                 />
               ))}
             </LineChart>
           </ChartContainer>
         )}
 
-        {/* Area Chart */}
         {type === "area" && (
           <ChartContainer config={config} className="min-h-[200px] w-full">
-            <AreaChart data={data as Record<string, string | number>[]} accessibilityLayer>
+            <AreaChart
+              data={data as Record<string, string | number>[]}
+              accessibilityLayer
+            >
               <defs>
                 {dataKeys.map((key) => (
-                  <linearGradient key={key} id={`fill-${key}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={`var(--color-${key})`} stopOpacity={0.4} />
-                    <stop offset="95%" stopColor={`var(--color-${key})`} stopOpacity={0.05} />
+                  <linearGradient
+                    key={key}
+                    id={`area-${key}`}
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="0%"
+                      stopColor={`var(--color-${key})`}
+                      stopOpacity={0.25}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor={`var(--color-${key})`}
+                      stopOpacity={0}
+                    />
                   </linearGradient>
                 ))}
               </defs>
-              <CartesianGrid vertical={false} />
+              <CartesianGrid
+                vertical={false}
+                stroke="rgba(168,162,158,0.08)"
+              />
               <XAxis
                 dataKey={xKey}
                 tickLine={false}
                 tickMargin={10}
                 axisLine={false}
-                tick={{ fontSize: 11 }}
+                tick={{ fontSize: 11, fill: "#78716c" }}
               />
-              <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 10 }} width={40} />
-              <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 10, fill: "#57534e" }}
+                width={40}
+              />
+              <ChartTooltip
+                content={<ChartTooltipContent indicator="dot" />}
+              />
               {dataKeys.map((key) => (
                 <Area
                   key={key}
-                  type="natural"
+                  type="monotone"
                   dataKey={key}
                   stroke={`var(--color-${key})`}
-                  strokeWidth={2}
-                  fill={`url(#fill-${key})`}
+                  strokeWidth={1.5}
+                  fill={`url(#area-${key})`}
                 />
               ))}
             </AreaChart>
           </ChartContainer>
         )}
 
-        {/* Pie / Donut Chart */}
         {type === "pie" && (
-          <ChartContainer config={pieConfig} className="mx-auto min-h-[220px] max-w-[280px]">
+          <ChartContainer
+            config={pieConfig}
+            className="mx-auto min-h-[220px] max-w-[260px]"
+          >
             <PieChart>
               <ChartTooltip content={<ChartTooltipContent hideLabel />} />
               <Pie
                 data={data as Record<string, string | number>[]}
                 dataKey={dataKeys[0] || "value"}
                 nameKey={xKey}
-                innerRadius={55}
-                outerRadius={85}
-                paddingAngle={3}
+                innerRadius={50}
+                outerRadius={80}
+                paddingAngle={4}
                 strokeWidth={0}
               >
                 {data.map((_, i) => (
-                  <Cell key={i} fill={chartColors[i % chartColors.length]} />
+                  <Cell
+                    key={i}
+                    fill={chartColors[i % chartColors.length]}
+                    opacity={0.8}
+                  />
                 ))}
                 <Label
                   content={({ viewBox }) => {
                     if (viewBox && "cx" in viewBox && "cy" in viewBox) {
                       const total = data.reduce(
-                        (s, d) => s + ((d[dataKeys[0] || "value"] as number) || 0),
+                        (s, d) =>
+                          s +
+                          ((d[dataKeys[0] || "value"] as number) || 0),
                         0
                       );
                       return (
-                        <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                          <tspan x={viewBox.cx} y={viewBox.cy} className="fill-white text-2xl font-bold">
-                            {formatVal(total)}
+                        <text
+                          x={viewBox.cx}
+                          y={viewBox.cy}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                        >
+                          <tspan
+                            x={viewBox.cx}
+                            y={viewBox.cy}
+                            className="fill-stone-200 text-xl font-semibold"
+                          >
+                            {fmt(total)}
                           </tspan>
-                          <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 20} className="fill-zinc-500 text-[10px]">
+                          <tspan
+                            x={viewBox.cx}
+                            y={(viewBox.cy || 0) + 18}
+                            className="fill-stone-500 text-[10px]"
+                          >
                             Total
                           </tspan>
                         </text>
@@ -379,60 +415,75 @@ export function InlineChart({ chartData }: { chartData: ChartData }) {
           </ChartContainer>
         )}
 
-        {/* Radar Chart */}
         {type === "radar" && (
-          <ChartContainer config={config} className="mx-auto min-h-[250px] max-w-[320px]">
+          <ChartContainer
+            config={config}
+            className="mx-auto min-h-[240px] max-w-[300px]"
+          >
             <RadarChart data={data as Record<string, string | number>[]}>
               <ChartTooltip content={<ChartTooltipContent />} />
-              <PolarGrid stroke="hsl(var(--border))" />
-              <PolarAngleAxis dataKey={xKey} tick={{ fontSize: 10 }} />
-              <PolarRadiusAxis tick={{ fontSize: 9 }} />
-              {dataKeys.map((key, i) => (
+              <PolarGrid stroke="rgba(168,162,158,0.12)" />
+              <PolarAngleAxis
+                dataKey={xKey}
+                tick={{ fontSize: 10, fill: "#78716c" }}
+              />
+              <PolarRadiusAxis tick={{ fontSize: 9, fill: "#57534e" }} />
+              {dataKeys.map((key) => (
                 <Radar
                   key={key}
-                  name={config[key]?.label as string ?? key}
+                  name={(config[key]?.label as string) ?? key}
                   dataKey={key}
                   stroke={`var(--color-${key})`}
                   fill={`var(--color-${key})`}
-                  fillOpacity={0.15}
-                  strokeWidth={2}
+                  fillOpacity={0.1}
+                  strokeWidth={1.5}
                 />
               ))}
             </RadarChart>
           </ChartContainer>
         )}
 
-        {/* Footer */}
         {footer && (
-          <p className="mt-2 text-center text-[10px] text-zinc-500">{footer}</p>
+          <p className="mt-3 text-center text-[10px] text-stone-600">
+            {footer}
+          </p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
 // ── Parser ──
 
 export function parseChartsFromContent(content: string): {
-  segments: { type: "text" | "chart"; content: string; chartData?: ChartData }[];
+  segments: {
+    type: "text" | "chart";
+    content: string;
+    chartData?: ChartData;
+  }[];
 } {
-  const segments: { type: "text" | "chart"; content: string; chartData?: ChartData }[] = [];
+  const segments: {
+    type: "text" | "chart";
+    content: string;
+    chartData?: ChartData;
+  }[] = [];
   const chartRegex = /```chart\s*\n([\s\S]*?)```/g;
   let lastIndex = 0;
   let match;
 
   while ((match = chartRegex.exec(content)) !== null) {
     if (match.index > lastIndex) {
-      segments.push({ type: "text", content: content.slice(lastIndex, match.index) });
+      segments.push({
+        type: "text",
+        content: content.slice(lastIndex, match.index),
+      });
     }
-
     try {
       const chartData = JSON.parse(match[1]) as ChartData;
       segments.push({ type: "chart", content: match[0], chartData });
     } catch {
       segments.push({ type: "text", content: match[0] });
     }
-
     lastIndex = match.index + match[0].length;
   }
 

@@ -78,121 +78,106 @@ function MarkdownContent({ content }: { content: string }) {
       components={{
         // Headings
         h1: ({ children }) => (
-          <h3 className="mb-3 mt-5 flex items-center gap-2 border-b border-white/10 pb-2 text-base font-bold text-white first:mt-0">
-            <span className="inline-block size-1.5 rounded-full bg-violet-500" />
+          <h3 className="mb-3 mt-5 border-b border-stone-300/10 pb-2 text-[15px] font-semibold tracking-tight text-stone-200 first:mt-0">
             {children}
           </h3>
         ),
         h2: ({ children }) => (
-          <h4 className="mb-2 mt-4 flex items-center gap-2 text-sm font-bold text-violet-300 first:mt-0">
-            <span className="inline-block size-1 rounded-full bg-violet-400" />
+          <h4 className="mb-2 mt-4 text-[13px] font-semibold text-stone-300 first:mt-0">
             {children}
           </h4>
         ),
         h3: ({ children }) => (
-          <h5 className="mb-1.5 mt-3 text-sm font-semibold text-zinc-200 first:mt-0">
+          <h5 className="mb-1.5 mt-3 text-[13px] font-medium text-stone-400 first:mt-0">
             {children}
           </h5>
         ),
-        // Paragraphs
         p: ({ children }) => (
-          <p className="mb-2.5 text-sm leading-relaxed text-zinc-300 last:mb-0">
+          <p className="mb-2.5 text-[13px] leading-relaxed text-stone-400 last:mb-0">
             {children}
           </p>
         ),
-        // Bold
         strong: ({ children }) => (
-          <strong className="font-semibold text-white">{children}</strong>
+          <strong className="font-semibold text-stone-200">{children}</strong>
         ),
-        // Italic
         em: ({ children }) => (
-          <em className="text-violet-300">{children}</em>
+          <em className="text-stone-300 not-italic">{children}</em>
         ),
-        // Links
         a: ({ href, children }) => (
           <a
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-violet-400 underline decoration-violet-400/30 underline-offset-2 transition hover:text-violet-300 hover:decoration-violet-300/50"
+            className="inline-flex items-center gap-1 text-stone-300 underline decoration-stone-500/40 underline-offset-2 transition hover:text-stone-200"
           >
             {children}
-            <ExternalLink className="inline size-3" />
+            <ExternalLink className="inline size-2.5" />
           </a>
         ),
-        // Unordered lists
         ul: ({ children }) => (
-          <ul className="mb-3 ml-1 space-y-1.5">{children}</ul>
+          <ul className="mb-3 ml-1 space-y-1">{children}</ul>
         ),
-        // Ordered lists
         ol: ({ children }) => (
-          <ol className="mb-3 ml-1 space-y-1.5 [counter-reset:item]">
+          <ol className="mb-3 ml-1 space-y-1 [counter-reset:item]">
             {children}
           </ol>
         ),
-        // List items
         li: ({ children, ...props }) => {
           const isOrdered = (props as { node?: { parentNode?: { tagName?: string } } }).node?.parentNode?.tagName === "ol";
           return (
-            <li className="flex gap-2 text-sm leading-relaxed text-zinc-300">
+            <li className="flex gap-2.5 text-[13px] leading-relaxed text-stone-400">
               {isOrdered ? (
-                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md bg-violet-500/20 text-[10px] font-bold text-violet-400 [counter-increment:item] before:content-[counter(item)]" />
+                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md bg-stone-300/10 text-[10px] font-semibold text-stone-400 [counter-increment:item] before:content-[counter(item)]" />
               ) : (
-                <span className="mt-2 size-1.5 shrink-0 rounded-full bg-violet-500/50" />
+                <span className="mt-[9px] size-1 shrink-0 rounded-full bg-stone-500" />
               )}
               <span className="flex-1">{children}</span>
             </li>
           );
         },
-        // Code blocks
         code: ({ className, children }) => {
           const isBlock = className?.includes("language-");
           if (isBlock) {
             return (
-              <div className="my-3 overflow-x-auto rounded-lg border border-white/5 bg-black/40 p-3">
-                <code className="text-xs text-emerald-400">{children}</code>
+              <div className="my-3 overflow-x-auto rounded-xl border border-stone-300/5 bg-stone-900/40 p-3">
+                <code className="text-xs text-stone-400">{children}</code>
               </div>
             );
           }
           return (
-            <code className="rounded-md bg-white/10 px-1.5 py-0.5 text-xs font-medium text-violet-300">
+            <code className="rounded-md bg-stone-300/10 px-1.5 py-0.5 text-xs font-medium text-stone-300">
               {children}
             </code>
           );
         },
         pre: ({ children }) => <>{children}</>,
-        // Blockquotes
         blockquote: ({ children }) => (
-          <blockquote className="my-3 border-l-2 border-violet-500/50 bg-violet-500/5 py-2 pl-4 pr-3">
+          <blockquote className="my-3 border-l-2 border-stone-500/30 bg-stone-300/[0.03] py-2 pl-4 pr-3">
             {children}
           </blockquote>
         ),
-        // Horizontal rule
-        hr: () => (
-          <hr className="my-4 border-white/10" />
-        ),
-        // Tables
+        hr: () => <hr className="my-4 border-stone-300/10" />,
         table: ({ children }) => (
-          <div className="my-3 overflow-x-auto rounded-lg border border-white/10">
-            <table className="w-full text-sm">{children}</table>
+          <div className="my-3 overflow-x-auto rounded-xl border border-stone-300/10">
+            <table className="w-full text-[13px]">{children}</table>
           </div>
         ),
         thead: ({ children }) => (
-          <thead className="bg-violet-500/10 text-xs font-medium uppercase text-violet-300">
+          <thead className="bg-stone-300/[0.04] text-[11px] font-medium uppercase tracking-wider text-stone-500">
             {children}
           </thead>
         ),
         th: ({ children }) => (
-          <th className="px-3 py-2 text-left font-semibold">{children}</th>
+          <th className="px-3 py-2.5 text-left font-semibold">{children}</th>
         ),
         tbody: ({ children }) => (
-          <tbody className="divide-y divide-white/5">{children}</tbody>
+          <tbody className="divide-y divide-stone-300/5">{children}</tbody>
         ),
         tr: ({ children }) => (
-          <tr className="transition hover:bg-white/5">{children}</tr>
+          <tr className="transition hover:bg-stone-300/[0.03]">{children}</tr>
         ),
         td: ({ children }) => (
-          <td className="px-3 py-2 text-zinc-300">{children}</td>
+          <td className="px-3 py-2 text-stone-400">{children}</td>
         ),
       }}
     >
