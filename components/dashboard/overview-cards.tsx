@@ -74,6 +74,11 @@ interface OverviewData {
     content: number;
     engagement: number;
   };
+  viewsLabel?: string;
+  watchHours?: number;
+  recentLikes?: number;
+  recentComments?: number;
+  subsGained?: number;
 }
 
 interface OverviewCardsProps {
@@ -88,32 +93,41 @@ const cards = [
     getValue: (d: OverviewData) => formatNumber(d.totalFollowers),
     getRaw: (d: OverviewData) => d.totalFollowers,
     getGrowth: (d: OverviewData) => d.growth.followers,
+    getSubtext: (d: OverviewData) =>
+      d.subsGained ? `+${d.subsGained} nos últimos 28 dias` : undefined,
   },
   {
     key: "views" as const,
-    label: "Visualizações",
+    label: (d: OverviewData) => d.viewsLabel === "últimos 28 dias" ? "Views (28 dias)" : "Visualizações",
     icon: Eye,
     getValue: (d: OverviewData) => formatNumber(d.totalViews),
     getRaw: (d: OverviewData) => d.totalViews,
     getGrowth: (d: OverviewData) => d.growth.views,
+    getSubtext: (d: OverviewData) =>
+      d.watchHours ? `${formatNumber(d.watchHours)} horas assistidas` : undefined,
   },
   {
     key: "content" as const,
-    label: "Vídeos",
+    label: "Vídeos Publicados",
     icon: PlayCircle,
     getValue: (d: OverviewData) => formatNumber(d.totalContent),
     getRaw: (d: OverviewData) => d.totalContent,
     getGrowth: (d: OverviewData) => d.growth.content,
+    getSubtext: () => undefined,
   },
   {
     key: "engagement" as const,
     label: "Engajamento",
     icon: Activity,
-    getValue: (d: OverviewData) => `${d.avgEngagement.toFixed(1)}%`,
-    getRaw: (d: OverviewData) => d.avgEngagement,
+    getValue: (d: OverviewData) => `${(d.avgEngagement * 100).toFixed(2)}%`,
+    getRaw: (d: OverviewData) => d.avgEngagement * 100,
     getGrowth: (d: OverviewData) => d.growth.engagement,
+    getSubtext: (d: OverviewData) => {
+      const total = (d.recentLikes ?? 0) + (d.recentComments ?? 0);
+      return total > 0 ? `${formatNumber(total)} interações (28 dias)` : undefined;
+    },
   },
-] as const;
+];
 
 export function OverviewCards({ data }: OverviewCardsProps) {
   return (
@@ -122,21 +136,22 @@ export function OverviewCards({ data }: OverviewCardsProps) {
         const Icon = card.icon;
         const growth = card.getGrowth(data);
         const rawValue = card.getRaw(data);
-        const isPositive = growth >= 0;
+        const isPositive = growth > 0;
+        const isZero = growth === 0;
+        const label = typeof card.label === "function" ? card.label(data) : card.label;
+        const subtext = card.getSubtext(data);
 
         return (
           <MotionItem key={card.key}>
             <Card className="border-zinc-800 bg-zinc-900 transition-colors hover:border-zinc-700">
               <CardContent className="flex flex-col gap-3 py-5">
-                {/* Top row: label + icon */}
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-zinc-400">
-                    {card.label}
+                    {label}
                   </span>
                   <Icon className="size-4 text-zinc-600" />
                 </div>
 
-                {/* Middle row: big number + sparkline */}
                 <div className="flex items-end justify-between">
                   <p className="text-2xl font-bold tracking-tight text-white">
                     {card.getValue(data)}
@@ -144,26 +159,32 @@ export function OverviewCards({ data }: OverviewCardsProps) {
                   <MiniSparkline value={rawValue} trend={growth} />
                 </div>
 
-                {/* Bottom row: growth comparison */}
-                <div className="flex items-center gap-1">
-                  {isPositive ? (
-                    <TrendingUp className="size-3 text-emerald-500" />
-                  ) : (
-                    <TrendingDown className="size-3 text-red-500" />
-                  )}
-                  <span
-                    className={cn(
-                      "text-xs font-medium",
-                      isPositive ? "text-emerald-500" : "text-red-500"
+                {/* Subtext contextual ou growth */}
+                {subtext ? (
+                  <p className="text-xs text-zinc-500">{subtext}</p>
+                ) : !isZero ? (
+                  <div className="flex items-center gap-1">
+                    {isPositive ? (
+                      <TrendingUp className="size-3 text-emerald-500" />
+                    ) : (
+                      <TrendingDown className="size-3 text-red-500" />
                     )}
-                  >
-                    {isPositive ? "+" : ""}
-                    {growth.toFixed(1)}%
-                  </span>
-                  <span className="text-xs text-zinc-500">
-                    vs. período anterior
-                  </span>
-                </div>
+                    <span
+                      className={cn(
+                        "text-xs font-medium",
+                        isPositive ? "text-emerald-500" : "text-red-500"
+                      )}
+                    >
+                      {isPositive ? "+" : ""}
+                      {growth.toFixed(1)}%
+                    </span>
+                    <span className="text-xs text-zinc-500">
+                      últimos 28 dias
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-600">—</p>
+                )}
               </CardContent>
             </Card>
           </MotionItem>

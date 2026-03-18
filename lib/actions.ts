@@ -346,20 +346,37 @@ export async function getMetricsHistory(
 }
 
 export async function getAllContent() {
-  const snapshots = await prisma.metricsSnapshot.findMany({
-    where: { artistId: ARTIST_ID },
-    orderBy: { date: "desc" },
-    take: 3, // latest snapshot per platform
-    include: {
-      contentMetrics: {
-        orderBy: { views: "desc" },
-      },
-    },
-  });
+  // Pegar último snapshot por plataforma (sem duplicar)
+  const platforms = ["YOUTUBE", "INSTAGRAM", "SPOTIFY"] as const;
+  const content: (Awaited<ReturnType<typeof prisma.contentMetrics.findMany>>[number] & { platform: string })[] = [];
 
-  return snapshots.flatMap((s) =>
-    s.contentMetrics.map((c) => ({ ...c, platform: s.platform }))
-  );
+  for (const platform of platforms) {
+    const snapshot = await prisma.metricsSnapshot.findFirst({
+      where: { artistId: ARTIST_ID, platform },
+      orderBy: { date: "desc" },
+      include: {
+        contentMetrics: {
+          orderBy: { views: "desc" },
+        },
+      },
+    });
+    if (snapshot) {
+      for (const c of snapshot.contentMetrics) {
+        content.push({ ...c, platform: snapshot.platform });
+      }
+    }
+  }
+
+  // De-duplicar por contentId (manter o com mais views)
+  const seen = new Map<string, typeof content[number]>();
+  for (const item of content) {
+    const existing = seen.get(item.contentId);
+    if (!existing || (item.views ?? 0) > (existing.views ?? 0)) {
+      seen.set(item.contentId, item);
+    }
+  }
+
+  return Array.from(seen.values()).sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
 }
 
 export async function getAudienceData() {

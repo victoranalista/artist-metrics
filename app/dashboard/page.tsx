@@ -32,64 +32,69 @@ export default async function DashboardPage() {
     if (!latestByPlatform.has(s.platform)) latestByPlatform.set(s.platform, s);
   }
 
-  // Calculate totals
+  // Dados do canal
   const totalFollowers = Array.from(latestByPlatform.values()).reduce(
     (sum, s) => sum + (s.followers || 0),
     0
   );
-  const totalViews = Array.from(latestByPlatform.values()).reduce(
+
+  // Extrair dados do YouTube Analytics (últimos 28 dias) se disponível
+  const ytSnapshot = latestByPlatform.get("YOUTUBE");
+  const ytPlatformData = (ytSnapshot?.platformData ?? {}) as Record<string, unknown>;
+  const ytAnalytics = (ytPlatformData?.analytics ?? {}) as Record<string, number>;
+
+  // Views dos últimos 28 dias (do Analytics) ou total do canal
+  const recentViews = ytAnalytics?.visualizacoes ?? 0;
+  const totalViewsAllTime = Array.from(latestByPlatform.values()).reduce(
     (sum, s) => sum + (s.totalViews || 0),
     0
   );
-  const totalContent = snapshots.reduce(
-    (sum, s) => sum + s.contentMetrics.length,
-    0
-  );
+  // Se temos dados do Analytics, mostrar os 28 dias. Senão, total.
+  const displayViews = recentViews > 0 ? recentViews : totalViewsAllTime;
+  const viewsLabel = recentViews > 0 ? "últimos 28 dias" : "total";
+
+  // Vídeos únicos do último snapshot
+  const latestVideoCount = ytSnapshot?.contentMetrics?.length ?? 0;
+  const totalVideos = (ytPlatformData?.totalVideos as number) ?? latestVideoCount;
+
+  // Engajamento dos últimos 28 dias
+  const recentLikes = ytAnalytics?.curtidas ?? 0;
+  const recentComments = ytAnalytics?.comentarios ?? 0;
   const avgEngagement =
-    Array.from(latestByPlatform.values()).reduce(
-      (sum, s) => sum + (s.engagementRate || 0),
-      0
-    ) / Math.max(latestByPlatform.size, 1);
+    displayViews > 0
+      ? ((recentLikes + recentComments) / displayViews)
+      : Array.from(latestByPlatform.values()).reduce(
+          (sum, s) => sum + (s.engagementRate || 0),
+          0
+        ) / Math.max(latestByPlatform.size, 1);
 
-  // Calculate growth comparing latest vs previous period
-  const sortedSnapshots = [...snapshots].sort(
-    (a, b) => b.date.getTime() - a.date.getTime()
-  );
-  const midpoint = Math.floor(sortedSnapshots.length / 2);
-  const recentHalf = sortedSnapshots.slice(0, midpoint);
-  const olderHalf = sortedSnapshots.slice(midpoint);
+  // Inscritos ganhos nos últimos 28 dias
+  const subsGained = ytAnalytics?.inscritosGanhos ?? 0;
+  const subsLost = ytAnalytics?.inscritosPerdidos ?? 0;
+  const subsGrowthPct = totalFollowers > 0
+    ? ((subsGained - subsLost) / totalFollowers) * 100
+    : 0;
 
-  const recentFollowers = recentHalf.reduce(
-    (sum, s) => sum + (s.followers || 0),
-    0
-  );
-  const olderFollowers = olderHalf.reduce(
-    (sum, s) => sum + (s.followers || 0),
-    0
-  );
-  const recentViews = recentHalf.reduce(
-    (sum, s) => sum + (s.totalViews || 0),
-    0
-  );
-  const olderViews = olderHalf.reduce(
-    (sum, s) => sum + (s.totalViews || 0),
-    0
-  );
-
-  const calcGrowth = (recent: number, older: number) =>
-    older > 0 ? ((recent - older) / older) * 100 : 0;
+  // Horas assistidas
+  const watchHours = ytAnalytics?.horasAssistidas ?? 0;
 
   const overviewData = {
     totalFollowers,
-    totalViews,
-    totalContent,
+    totalViews: displayViews,
+    totalContent: totalVideos,
     avgEngagement,
     growth: {
-      followers: calcGrowth(recentFollowers, olderFollowers),
-      views: calcGrowth(recentViews, olderViews),
+      followers: Math.round(subsGrowthPct * 10) / 10,
+      views: 0, // Sem dados históricos para comparar ainda
       content: 0,
       engagement: 0,
     },
+    // Dados extras para exibir
+    viewsLabel,
+    watchHours,
+    recentLikes,
+    recentComments,
+    subsGained,
   };
 
   // Build chart data from snapshots
@@ -190,7 +195,7 @@ export default async function DashboardPage() {
 
       {/* Hero stat — most impressive number */}
       <MotionSection delay={0.2}>
-        <HeroStat value={totalViews} label="visualizações totais de Débora" />
+        <HeroStat value={totalViewsAllTime} label="visualizações totais de Débora" />
       </MotionSection>
 
       {/* Chart + Recent content */}
