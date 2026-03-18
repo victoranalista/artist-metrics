@@ -267,7 +267,7 @@ export function ChatClient({
   const [sessionId, setSessionId] = useState<string | null>(currentSessionId);
   const [input, setInput] = useState("");
   const [isSending, startSending] = useTransition();
-  const [showSessions, setShowSessions] = useState(false);
+  const [showMobileSessions, setShowMobileSessions] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [isDeleting, startDeleting] = useTransition();
   const [showCommandHint, setShowCommandHint] = useState(false);
@@ -363,41 +363,138 @@ export function ChatClient({
 
   const isEmpty = messages.length === 0;
 
+  // Sessions panel content (reused for desktop sidebar and mobile drawer)
+  const sessionsContent = (
+    <>
+      {/* New chat button */}
+      <button
+        onClick={() => {
+          router.push("/chat");
+          setShowMobileSessions(false);
+        }}
+        className="mb-3 flex items-center gap-2 rounded-lg border border-dashed border-zinc-700 px-3 py-2 text-sm text-zinc-400 transition hover:border-zinc-600 hover:bg-zinc-900 hover:text-zinc-200"
+      >
+        <Plus className="size-4" />
+        Nova conversa
+      </button>
+
+      {/* Sessions list */}
+      <div className="flex-1 space-y-1 overflow-y-auto">
+        {sessions.length === 0 ? (
+          <p className="px-2 py-4 text-center text-xs text-zinc-600">
+            Nenhuma conversa ainda
+          </p>
+        ) : (
+          sessions.map((s) => (
+            <div
+              key={s.id}
+              className={`group flex items-center gap-2 rounded-lg px-3 py-2 transition ${
+                s.id === sessionId
+                  ? "bg-zinc-800 text-zinc-100"
+                  : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
+              }`}
+            >
+              <button
+                onClick={() => {
+                  router.push(`/chat/${s.id}`);
+                  setShowMobileSessions(false);
+                }}
+                className="flex min-w-0 flex-1 flex-col text-left"
+              >
+                <span className="truncate text-sm font-medium">
+                  {s.title || "Nova conversa"}
+                </span>
+                <span className="text-[10px] text-zinc-600">
+                  {timeAgo(s.updatedAt)}
+                </span>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleteTarget(s.id);
+                }}
+                className="shrink-0 rounded p-1 text-zinc-600 opacity-0 transition hover:bg-zinc-700 hover:text-red-400 group-hover:opacity-100"
+              >
+                <Trash2 className="size-3" />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </>
+  );
+
   return (
-    <div className="flex h-[calc(100vh-10rem)] flex-col pb-safe md:h-[calc(100vh-6.5rem)]">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-zinc-800">
-            <MessageSquare className="size-4 text-zinc-400" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="truncate text-sm font-semibold text-zinc-100 sm:text-base">
-              Sua Equipe de Marketing
-            </h1>
-            <div className="flex items-center gap-1.5">
-              <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-              <p className="truncate text-[10px] text-zinc-500 sm:text-xs">Online — Dedicada à Débora Kailany</p>
+    <div className="flex h-[calc(100vh-10rem)] gap-3 pb-safe md:h-[calc(100vh-6.5rem)]">
+      {/* ── Desktop sessions sidebar (always visible) ── */}
+      <div className="hidden w-64 shrink-0 flex-col rounded-xl border border-zinc-800 bg-zinc-950/50 p-3 md:flex">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-zinc-200">Conversas</h3>
+          <span className="rounded-full bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500">
+            {sessions.length}
+          </span>
+        </div>
+        {sessionsContent}
+      </div>
+
+      {/* ── Mobile sessions drawer ── */}
+      <AnimatePresence>
+        {showMobileSessions && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/50 md:hidden"
+              onClick={() => setShowMobileSessions(false)}
+            />
+            <motion.div
+              initial={{ x: -300 }}
+              animate={{ x: 0 }}
+              exit={{ x: -300 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed left-0 top-0 z-50 flex h-full w-72 flex-col border-r border-zinc-800 bg-zinc-950 p-3 md:hidden"
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-zinc-200">Conversas</h3>
+                <button
+                  onClick={() => setShowMobileSessions(false)}
+                  className="rounded-lg p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+              {sessionsContent}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Chat column ── */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-3">
+          <div className="flex items-center gap-2.5">
+            {/* Mobile sessions toggle */}
+            <button
+              onClick={() => setShowMobileSessions(true)}
+              className="flex size-9 items-center justify-center rounded-lg bg-zinc-800 md:hidden"
+            >
+              <History className="size-4 text-zinc-400" />
+            </button>
+            <div className="hidden size-9 items-center justify-center rounded-lg bg-zinc-800 md:flex">
+              <MessageSquare className="size-4 text-zinc-400" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-sm font-semibold text-zinc-100 sm:text-base">
+                Sua Equipe de Marketing
+              </h1>
+              <div className="flex items-center gap-1.5">
+                <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
+                <p className="truncate text-[10px] text-zinc-500 sm:text-xs">Online — Dedicada à Débora Kailany</p>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-1">
-          {/* Sessions toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowSessions((v) => !v)}
-            className="shrink-0 text-zinc-500 hover:text-zinc-300"
-          >
-            <History className="size-4" />
-            <span className="ml-1.5 hidden sm:inline">Sessões</span>
-            {sessions.length > 0 && (
-              <span className="ml-1 rounded-full bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">
-                {sessions.length}
-              </span>
-            )}
-          </Button>
-          {/* New chat */}
           {sessionId && (
             <Button
               variant="ghost"
@@ -406,107 +503,12 @@ export function ChatClient({
               className="shrink-0 text-zinc-500 hover:text-zinc-300"
             >
               <Plus className="size-4" />
-              <span className="ml-1.5 hidden sm:inline">Nova</span>
+              <span className="ml-1.5 hidden sm:inline">Nova conversa</span>
             </Button>
           )}
         </div>
-      </div>
 
-      {/* Main area with optional sessions panel */}
-      <div className="flex min-h-0 flex-1 gap-3">
-        {/* Sessions panel */}
-        <AnimatePresence>
-          {showSessions && (
-            <>
-              {/* Mobile overlay */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-40 bg-black/50 md:hidden"
-                onClick={() => setShowSessions(false)}
-              />
-              <motion.div
-                initial={{ x: -280, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: -280, opacity: 0 }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="fixed left-0 top-0 z-50 flex h-full w-72 flex-col border-r border-zinc-800 bg-zinc-950 p-3 md:relative md:left-auto md:top-auto md:z-auto md:h-auto md:w-64 md:shrink-0 md:rounded-xl md:border"
-              >
-                {/* Panel header */}
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-zinc-200">Conversas</h3>
-                  <button
-                    onClick={() => setShowSessions(false)}
-                    className="rounded-lg p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 md:hidden"
-                  >
-                    <X className="size-4" />
-                  </button>
-                </div>
-
-                {/* New chat button */}
-                <button
-                  onClick={() => {
-                    router.push("/chat");
-                    setShowSessions(false);
-                  }}
-                  className="mb-3 flex items-center gap-2 rounded-lg border border-dashed border-zinc-700 px-3 py-2 text-sm text-zinc-400 transition hover:border-zinc-600 hover:bg-zinc-900 hover:text-zinc-200"
-                >
-                  <Plus className="size-4" />
-                  Nova conversa
-                </button>
-
-                {/* Sessions list */}
-                <div className="flex-1 space-y-1 overflow-y-auto">
-                  {sessions.length === 0 ? (
-                    <p className="px-2 py-4 text-center text-xs text-zinc-600">
-                      Nenhuma conversa ainda
-                    </p>
-                  ) : (
-                    sessions.map((s) => (
-                      <div
-                        key={s.id}
-                        className={`group flex items-center gap-2 rounded-lg px-3 py-2 transition ${
-                          s.id === sessionId
-                            ? "bg-zinc-800 text-zinc-100"
-                            : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
-                        }`}
-                      >
-                        <button
-                          onClick={() => {
-                            router.push(`/chat/${s.id}`);
-                            setShowSessions(false);
-                          }}
-                          className="flex min-w-0 flex-1 flex-col text-left"
-                        >
-                          <span className="truncate text-sm font-medium">
-                            {s.title || "Nova conversa"}
-                          </span>
-                          <span className="text-[10px] text-zinc-600">
-                            {timeAgo(s.updatedAt)}
-                          </span>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteTarget(s.id);
-                          }}
-                          className="shrink-0 rounded p-1 text-zinc-600 opacity-0 transition hover:bg-zinc-700 hover:text-red-400 group-hover:opacity-100"
-                        >
-                          <Trash2 className="size-3" />
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
-        {/* Chat area */}
-        <div className="flex min-w-0 flex-1 flex-col">
-          {/* Messages area */}
+        {/* Messages area */}
           <div
             ref={scrollRef}
             className="flex-1 overflow-y-auto overscroll-contain rounded-xl border border-zinc-800 bg-zinc-950/50 p-3 sm:rounded-2xl sm:p-4"
@@ -558,16 +560,16 @@ export function ChatClient({
                   })}
                 </motion.div>
 
-                {/* Recent sessions shortcut */}
+                {/* Recent sessions shortcut (mobile only) */}
                 {sessions.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.5 }}
-                    className="w-full max-w-lg"
+                    className="w-full max-w-lg md:hidden"
                   >
                     <button
-                      onClick={() => setShowSessions(true)}
+                      onClick={() => setShowMobileSessions(true)}
                       className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-2.5 text-xs text-zinc-500 transition hover:border-zinc-700 hover:text-zinc-300"
                     >
                       <History className="size-3.5" />
@@ -709,7 +711,6 @@ export function ChatClient({
               )}
             </Button>
           </div>
-        </div>
       </div>
 
       {/* Delete confirmation dialog */}
