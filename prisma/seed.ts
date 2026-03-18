@@ -1,6 +1,12 @@
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const prisma = new PrismaClient();
+const connectionString = process.env.DATABASE_URL!;
+const url = new URL(connectionString);
+url.searchParams.set("sslmode", "verify-full");
+const adapter = new PrismaPg({ connectionString: url.toString() });
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   const artist = await prisma.artist.upsert({
