@@ -134,9 +134,9 @@ export function Sidebar() {
           }`}
         >
           <Avatar size="sm">
-            <AvatarImage src="" alt="Avatar do artista" />
+            <AvatarImage src="/artist/avatar-sm.webp" alt="Debora Kailany" />
             <AvatarFallback className="bg-zinc-800 text-xs text-zinc-400">
-              AR
+              DK
             </AvatarFallback>
           </Avatar>
           <AnimatePresence>
@@ -149,10 +149,10 @@ export function Sidebar() {
                 className="min-w-0 overflow-hidden"
               >
                 <p className="truncate text-sm font-medium text-zinc-200">
-                  Artista
+                  Debora Kailany
                 </p>
                 <p className="truncate text-xs text-zinc-500">
-                  artista@email.com
+                  Artista Gospel
                 </p>
               </motion.div>
             )}

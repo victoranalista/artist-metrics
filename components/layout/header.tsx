@@ -68,9 +68,9 @@ export function Header() {
 
         <div className="ml-1 hidden md:block">
           <Avatar size="sm">
-            <AvatarImage src="" alt="Avatar do artista" />
+            <AvatarImage src="/artist/avatar-sm.webp" alt="Debora Kailany" />
             <AvatarFallback className="bg-zinc-800 text-xs text-zinc-400">
-              AR
+              DK
             </AvatarFallback>
           </Avatar>
         </div>

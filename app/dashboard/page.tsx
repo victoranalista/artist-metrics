@@ -151,13 +151,35 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-10">
-      {/* Welcome header */}
+      {/* Hero banner with artist photo */}
       <MotionSection delay={0}>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            Bem-vindo, {artist.name}
-          </h1>
-          <p className="mt-1 text-sm text-zinc-400 capitalize">{dateStr}</p>
+        <div className="relative overflow-hidden rounded-2xl">
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: "url(/artist/hero.webp)" }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-zinc-950/40" />
+          <div className="relative flex items-end gap-5 p-6 sm:p-8 md:min-h-[200px] md:items-center">
+            <img
+              src="/artist/avatar.webp"
+              alt={artist.name}
+              width={80}
+              height={80}
+              className="size-16 rounded-full border-2 border-zinc-700 object-cover sm:size-20"
+            />
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl md:text-3xl">
+                {artist.name}
+              </h1>
+              <p className="mt-0.5 text-sm text-zinc-400">
+                {artist.style && artist.style !== "Não definido"
+                  ? artist.style
+                  : "Artista Gospel"}
+                {" · "}
+                <span className="capitalize">{dateStr}</span>
+              </p>
+            </div>
+          </div>
         </div>
       </MotionSection>
 
