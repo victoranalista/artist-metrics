@@ -139,10 +139,24 @@ export function GrowthChart({ data }: GrowthChartProps) {
         </div>
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-        {filteredData.length === 0 ? (
-          <div className="flex h-[250px] items-center justify-center">
-            <p className="text-sm text-zinc-500">
-              Sem dados para o período selecionado
+        {filteredData.length <= 2 ? (
+          <div className="flex h-[250px] flex-col items-center justify-center gap-4 text-center">
+            <div className="grid w-full max-w-md grid-cols-3 gap-3">
+              {platforms.map((p) => {
+                const latest = filteredData[filteredData.length - 1];
+                const val = latest ? (latest[p] as number) ?? 0 : 0;
+                const names: Record<string, string> = { YOUTUBE: "YouTube", INSTAGRAM: "Instagram", SPOTIFY: "Spotify" };
+                return (
+                  <div key={p} className="rounded-xl border border-zinc-800 bg-zinc-950 p-4 text-center">
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">{names[p] ?? p}</p>
+                    <p className="mt-1 text-xl font-bold text-white">{val > 0 ? val.toLocaleString("pt-BR") : "—"}</p>
+                    <p className="mt-0.5 text-[10px] text-zinc-600">{metric === "followers" ? "inscritos" : "views"}</p>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="max-w-xs text-xs text-zinc-500">
+              O gráfico de evolução aparece quando houver dados de mais dias. Continue coletando métricas para acompanhar seu crescimento.
             </p>
           </div>
         ) : (
