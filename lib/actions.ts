@@ -563,6 +563,10 @@ export async function getManualMetrics() {
 
 // ── Chat ──
 
+import { parseCommand, getActiveMode } from "@/lib/ai/commands";
+import { handleArtistPreferences } from "@/lib/ai/handlers/artist-preferences";
+import { handleProductionArtist } from "@/lib/ai/handlers/production-artist";
+
 export async function getChatHistory() {
   return prisma.chatMessage.findMany({
     where: { artistId: ARTIST_ID },
@@ -572,6 +576,31 @@ export async function getChatHistory() {
 }
 
 export async function sendChatMessage(content: string) {
+  const command = parseCommand(content);
+
+  // Get recent messages to detect active mode
+  const recentMessages = await prisma.chatMessage.findMany({
+    where: { artistId: ARTIST_ID },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+  const reversed = recentMessages.reverse();
+  const activeMode = getActiveMode(reversed);
+
+  // Determine effective mode: explicit command takes priority, then active mode
+  const effectiveMode = command.type !== "regular" ? command.type : activeMode;
+
+  switch (effectiveMode) {
+    case "artist-preferences":
+      return handleArtistPreferences(content, reversed);
+    case "production-artist":
+      return handleProductionArtist(content, reversed);
+    default:
+      return handleRegularChat(content);
+  }
+}
+
+async function handleRegularChat(content: string) {
   // Save user message
   await prisma.chatMessage.create({
     data: {
@@ -659,8 +688,59 @@ export async function sendChatMessage(content: string) {
   // Dados extras que o prompt padrão não inclui
   const extraContext: string[] = [];
 
+  // Preferências do artista (se existirem)
+  if (artist.preferences) {
+    const prefs = artist.preferences as Record<string, Record<string, unknown>>;
+    extraContext.push(`## Preferencias do Artista (coletadas em conversa)`);
+    if (prefs.identity) {
+      if (prefs.identity.genre) extraContext.push(`- Genero: ${prefs.identity.genre}`);
+      if (Array.isArray(prefs.identity.subgenres) && prefs.identity.subgenres.length > 0) extraContext.push(`- Subgeneros: ${prefs.identity.subgenres.join(", ")}`);
+      if (prefs.identity.description) extraContext.push(`- Descricao: ${prefs.identity.description}`);
+      if (Array.isArray(prefs.identity.themes) && prefs.identity.themes.length > 0) extraContext.push(`- Temas: ${prefs.identity.themes.join(", ")}`);
+    }
+    if (prefs.influences) {
+      if (Array.isArray(prefs.influences.artists) && prefs.influences.artists.length > 0) extraContext.push(`- Influencias: ${prefs.influences.artists.join(", ")}`);
+      if (Array.isArray(prefs.influences.currentlyListening) && prefs.influences.currentlyListening.length > 0) extraContext.push(`- Ouvindo agora: ${prefs.influences.currentlyListening.join(", ")}`);
+    }
+    if (prefs.contentCreation) {
+      if (prefs.contentCreation.style) extraContext.push(`- Estilo de conteudo: ${prefs.contentCreation.style}`);
+      if (Array.isArray(prefs.contentCreation.preferredFormats) && prefs.contentCreation.preferredFormats.length > 0) extraContext.push(`- Formatos preferidos: ${prefs.contentCreation.preferredFormats.join(", ")}`);
+      if (prefs.contentCreation.postingFrequency) extraContext.push(`- Frequencia de postagem: ${prefs.contentCreation.postingFrequency}`);
+      if (prefs.contentCreation.hasTeam) extraContext.push(`- Tem equipe: Sim${prefs.contentCreation.teamDetails ? ` (${prefs.contentCreation.teamDetails})` : ""}`);
+    }
+    if (prefs.audience) {
+      if (prefs.audience.idealFan) extraContext.push(`- Fa ideal: ${prefs.audience.idealFan}`);
+      if (prefs.audience.connectionStyle) extraContext.push(`- Estilo de conexao: ${prefs.audience.connectionStyle}`);
+    }
+    if (prefs.goals) {
+      if (prefs.goals.sixMonths) extraContext.push(`- Meta 6 meses: ${prefs.goals.sixMonths}`);
+      if (prefs.goals.oneYear) extraContext.push(`- Meta 1 ano: ${prefs.goals.oneYear}`);
+      if (prefs.goals.successDefinition) extraContext.push(`- Definicao de sucesso: ${prefs.goals.successDefinition}`);
+    }
+    if (prefs.personality) {
+      if (Array.isArray(prefs.personality.coreValues) && prefs.personality.coreValues.length > 0) extraContext.push(`- Valores: ${prefs.personality.coreValues.join(", ")}`);
+    }
+    extraContext.push(`\nUse estas preferencias para personalizar TODAS as suas recomendacoes. Adapte sugestoes de conteudo ao estilo preferido do artista.`);
+  }
+
+  // Plano de carreira ativo (se existir)
+  const activePlan = await prisma.productionPlan.findFirst({
+    where: { artistId: ARTIST_ID, status: "ACTIVE" },
+    include: { stages: { orderBy: { orderIndex: "asc" } } },
+  });
+  if (activePlan) {
+    const completed = activePlan.stages.filter((s) => s.status === "COMPLETED").length;
+    const total = activePlan.stages.length;
+    const currentStage = activePlan.stages.find((s) => s.status === "IN_PROGRESS") ?? activePlan.stages.find((s) => s.status === "PENDING");
+    extraContext.push(`\n## Plano de Carreira Ativo: "${activePlan.title}"`);
+    extraContext.push(`- Periodo: ${activePlan.startDate.toISOString().split("T")[0]} a ${activePlan.endDate.toISOString().split("T")[0]}`);
+    extraContext.push(`- Progresso: ${completed}/${total} etapas completas`);
+    if (currentStage) extraContext.push(`- Etapa atual: ${currentStage.title} (${currentStage.status})`);
+    extraContext.push(`(Para detalhes ou atualizar progresso, use /production-artist)`);
+  }
+
   // Conexões
-  extraContext.push(`## Plataformas Conectadas`);
+  extraContext.push(`\n## Plataformas Conectadas`);
   for (const conn of connections) {
     const meta = (conn.metadata ?? {}) as Record<string, unknown>;
     extraContext.push(`- ${conn.platform}: ${conn.displayName ?? "conectado"} (${conn.status}) — desde ${conn.connectedAt?.toISOString().split("T")[0] ?? "?"}`);

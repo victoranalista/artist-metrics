@@ -18,6 +18,8 @@ import {
   Target,
   Lightbulb,
   User,
+  UserCog,
+  Briefcase,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,6 +40,7 @@ interface ChatMessage {
   role: "USER" | "ASSISTANT" | "SYSTEM";
   content: string;
   createdAt: Date | string;
+  metadata?: unknown;
 }
 
 interface ChatClientProps {
@@ -67,6 +70,21 @@ const suggestedPrompts = [
     label: "Ideias de conteúdo",
     prompt: "Me dê 10 ideias de conteúdo para os Reels e TikTok da Débora Kailany que podem viralizar no nicho gospel",
   },
+  {
+    icon: UserCog,
+    label: "Configurar preferências",
+    prompt: "/artist-preferences",
+  },
+  {
+    icon: Briefcase,
+    label: "Planejar carreira",
+    prompt: "/production-artist",
+  },
+];
+
+const slashCommands = [
+  { command: "/artist-preferences", description: "Definir suas preferências e estilo artístico" },
+  { command: "/production-artist", description: "Planejar e acompanhar sua carreira musical" },
 ];
 
 // ── Markdown renderer ──
@@ -212,7 +230,19 @@ export function ChatClient({ initialMessages }: ChatClientProps) {
   const [isSending, startSending] = useTransition();
   const [isClearing, startClearing] = useTransition();
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const [showCommandHint, setShowCommandHint] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Detect active mode from latest messages metadata
+  const activeMode = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const meta = messages[i].metadata as Record<string, unknown> | null;
+      if (!meta?.mode) continue;
+      if (meta.status === "completed") return null;
+      return meta.mode as string;
+    }
+    return null;
+  })();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -413,14 +443,56 @@ export function ChatClient({ initialMessages }: ChatClientProps) {
         )}
       </div>
 
+      {/* Mode indicator */}
+      {activeMode && (
+        <div className="flex items-center gap-2 px-1 pt-2">
+          <Badge variant="secondary" className="bg-violet-500/15 text-violet-300 border-violet-500/20 text-[11px]">
+            {activeMode === "artist-preferences" ? "Configurando preferências" : "Produção artística"}
+          </Badge>
+          <span className="text-[11px] text-zinc-500">
+            Modo especial ativo — dados sendo salvos
+          </span>
+        </div>
+      )}
+
       {/* Input area */}
       <div className="flex items-end gap-2 pt-2 sm:pt-3">
         <div className="relative flex-1">
+          {/* Slash command hints */}
+          <AnimatePresence>
+            {showCommandHint && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                className="absolute bottom-full left-0 z-10 mb-2 w-full overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 shadow-xl"
+              >
+                {slashCommands
+                  .filter((cmd) => cmd.command.startsWith(input.trim()) || input.trim() === "/")
+                  .map((cmd) => (
+                    <button
+                      key={cmd.command}
+                      onClick={() => {
+                        setInput(cmd.command);
+                        setShowCommandHint(false);
+                      }}
+                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-zinc-800"
+                    >
+                      <span className="text-sm font-medium text-violet-400">{cmd.command}</span>
+                      <span className="text-xs text-zinc-500">{cmd.description}</span>
+                    </button>
+                  ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
           <Textarea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+              setShowCommandHint(e.target.value.startsWith("/") && e.target.value.length < 25);
+            }}
             onKeyDown={handleKeyDown}
-            placeholder="Pergunte sobre métricas, estratégias..."
+            placeholder={activeMode ? "Continue a conversa..." : "Pergunte sobre métricas, estratégias... ou use /"}
             disabled={isSending}
             className="min-h-[44px] max-h-28 resize-none rounded-xl border-zinc-800 bg-zinc-900 text-sm text-zinc-100 placeholder:text-zinc-600 sm:min-h-[48px] sm:max-h-32"
             rows={1}
