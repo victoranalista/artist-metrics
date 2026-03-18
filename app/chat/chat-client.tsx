@@ -30,7 +30,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-  sendChatMessage,
   createChatSession,
   deleteChatSession,
 } from "@/lib/actions";
@@ -266,7 +265,7 @@ export function ChatClient({
   const [sessions, setSessions] = useState<ChatSession[]>(initialSessions);
   const [sessionId, setSessionId] = useState<string | null>(currentSessionId);
   const [input, setInput] = useState("");
-  const [isSending, startSending] = useTransition();
+  const [isSending, setIsSending] = useState(false);
   const [showMobileSessions, setShowMobileSessions] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [isDeleting, startDeleting] = useTransition();
@@ -302,43 +301,112 @@ export function ChatClient({
     };
     setMessages((prev) => [...prev, tempUserMsg]);
     setInput("");
+    setIsSending(true);
 
-    startSending(async () => {
-      try {
-        // Create session if needed
-        let activeSessionId = sessionId;
-        if (!activeSessionId) {
-          activeSessionId = await createChatSession();
-          setSessionId(activeSessionId);
+    try {
+      // Create session if needed
+      let activeSessionId = sessionId;
+      if (!activeSessionId) {
+        activeSessionId = await createChatSession();
+        setSessionId(activeSessionId);
 
-          // Add to sessions list
-          const title = text.startsWith("/")
-            ? text === "/artist-preferences"
-              ? "Preferências do Artista"
-              : text === "/production-artist"
-                ? "Planejamento de Carreira"
-                : text.slice(0, 50)
-            : text.length > 50
-              ? text.slice(0, 50) + "..."
-              : text;
+        const title = text.startsWith("/")
+          ? text === "/artist-preferences"
+            ? "Preferências do Artista"
+            : text === "/production-artist"
+              ? "Planejamento de Carreira"
+              : text.slice(0, 50)
+          : text.length > 50
+            ? text.slice(0, 50) + "..."
+            : text;
 
-          setSessions((prev) => [
-            { id: activeSessionId!, title, updatedAt: new Date().toISOString() },
-            ...prev,
-          ]);
+        setSessions((prev) => [
+          { id: activeSessionId!, title, updatedAt: new Date().toISOString() },
+          ...prev,
+        ]);
 
-          // Update URL without full reload
-          window.history.replaceState(null, "", `/chat/${activeSessionId}`);
-        }
-
-        const response = await sendChatMessage(text, activeSessionId);
-        setMessages((prev) => [...prev, response as ChatMessage]);
-      } catch {
-        setMessages((prev) =>
-          prev.filter((m) => m.id !== tempUserMsg.id)
-        );
+        window.history.replaceState(null, "", `/chat/${activeSessionId}`);
       }
-    });
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: text, sessionId: activeSessionId }),
+      });
+
+      if (!response.ok) throw new Error("Chat request failed");
+
+      const contentType = response.headers.get("content-type") ?? "";
+
+      // Special modes return JSON directly
+      if (contentType.includes("application/json")) {
+        const data = await response.json();
+        setMessages((prev) => [...prev, data as ChatMessage]);
+        setIsSending(false);
+        return;
+      }
+
+      // Streaming response (SSE)
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No reader");
+
+      const decoder = new TextDecoder();
+      let accumulated = "";
+
+      // Add a temporary streaming message
+      const streamMsgId = `stream-${Date.now()}`;
+      setMessages((prev) => [
+        ...prev,
+        { id: streamMsgId, role: "ASSISTANT", content: "", createdAt: new Date().toISOString() },
+      ]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (!jsonStr) continue;
+
+          try {
+            const event = JSON.parse(jsonStr) as
+              | { type: "delta"; content: string }
+              | { type: "done"; message: ChatMessage }
+              | { type: "error"; error: string };
+
+            if (event.type === "delta") {
+              accumulated += event.content;
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === streamMsgId ? { ...m, content: accumulated } : m
+                )
+              );
+            } else if (event.type === "done") {
+              // Replace streaming message with final saved message
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === streamMsgId ? (event.message as ChatMessage) : m
+                )
+              );
+            } else if (event.type === "error") {
+              setMessages((prev) => prev.filter((m) => m.id !== streamMsgId));
+            }
+          } catch {
+            // Skip malformed JSON lines
+          }
+        }
+      }
+    } catch {
+      setMessages((prev) =>
+        prev.filter((m) => !m.id.startsWith("temp-") && !m.id.startsWith("stream-"))
+      );
+    } finally {
+      setIsSending(false);
+      }
   }
 
   function handleDelete(id: string) {
