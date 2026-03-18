@@ -4,6 +4,7 @@ import { useRef, useEffect, useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { InlineChart, parseChartsFromContent } from "@/components/chat/inline-charts";
 import {
   Bot,
   Send,
@@ -200,6 +201,24 @@ function MarkdownContent({ content }: { content: string }) {
   );
 }
 
+// ── Rich message with charts ──
+
+function RichMessage({ content }: { content: string }) {
+  const { segments } = parseChartsFromContent(content);
+
+  return (
+    <div>
+      {segments.map((segment, i) =>
+        segment.type === "chart" && segment.chartData ? (
+          <InlineChart key={i} chartData={segment.chartData} />
+        ) : (
+          <MarkdownContent key={i} content={segment.content} />
+        )
+      )}
+    </div>
+  );
+}
+
 // ── Main component ──
 
 export function ChatClient({ initialMessages }: ChatClientProps) {
@@ -375,7 +394,7 @@ export function ChatClient({ initialMessages }: ChatClientProps) {
                     {msg.role === "USER" ? (
                       <p className="whitespace-pre-wrap">{msg.content}</p>
                     ) : (
-                      <MarkdownContent content={msg.content} />
+                      <RichMessage content={msg.content} />
                     )}
                   </div>
 
