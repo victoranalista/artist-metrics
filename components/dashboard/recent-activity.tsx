@@ -48,7 +48,7 @@ export function RecentActivity({ items }: RecentActivityProps) {
           </div>
         ) : (
           <MotionStagger className="space-y-0.5">
-            {items.map((content) => (
+            {items.filter(c => c.title && (c.views > 0 || c.likes > 0)).map((content) => (
               <MotionItem key={content.id}>
                 <div className="flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-white/[0.03]">
                   {/* Title and metadata */}
