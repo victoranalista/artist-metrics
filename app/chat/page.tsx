@@ -1,10 +1,16 @@
-import { getChatHistory } from "@/lib/actions";
+import { getChatSessions } from "@/lib/actions";
 import { ChatClient } from "./chat-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function ChatPage() {
-  const messages = await getChatHistory();
+  const sessions = await getChatSessions();
 
-  return <ChatClient initialMessages={messages} />;
+  return (
+    <ChatClient
+      sessions={sessions}
+      currentSessionId={null}
+      initialMessages={[]}
+    />
+  );
 }

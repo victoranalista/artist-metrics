@@ -20,6 +20,7 @@ model Artist {
   snapshots       MetricsSnapshot[]
   manualMetrics   ManualMetrics[]
   chatMessages    ChatMessage[]
+  chatSessions    ChatSession[]
   productionPlans ProductionPlan[]
 }
 
@@ -199,15 +200,31 @@ enum ChatRole {
   SYSTEM
 }
 
+model ChatSession {
+  id        String   @id @default(cuid())
+  artistId  String
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  artist   Artist        @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([artistId, updatedAt])
+}
+
 model ChatMessage {
   id        String   @id @default(cuid())
   artistId  String
+  sessionId String
   role      ChatRole
   content   String
   metadata  Json?
   createdAt DateTime @default(now())
 
-  artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  artist  Artist      @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
+  @@index([sessionId, createdAt])
   @@index([artistId, createdAt])
 }

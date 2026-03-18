@@ -573,44 +573,90 @@ import { parseCommand, getActiveMode } from "@/lib/ai/commands";
 import { handleArtistPreferences } from "@/lib/ai/handlers/artist-preferences";
 import { handleProductionArtist } from "@/lib/ai/handlers/production-artist";
 
-export async function getChatHistory() {
-  return prisma.chatMessage.findMany({
+export async function getChatSessions() {
+  const sessions = await prisma.chatSession.findMany({
     where: { artistId: ARTIST_ID },
+    orderBy: { updatedAt: "desc" },
+    take: 50,
+    select: {
+      id: true,
+      title: true,
+      updatedAt: true,
+    },
+  });
+  return sessions;
+}
+
+export async function createChatSession() {
+  const session = await prisma.chatSession.create({
+    data: { artistId: ARTIST_ID },
+  });
+  return session.id;
+}
+
+export async function getChatSessionMessages(sessionId: string) {
+  return prisma.chatMessage.findMany({
+    where: { sessionId },
     orderBy: { createdAt: "asc" },
-    take: 100,
+    take: 200,
   });
 }
 
-export async function sendChatMessage(content: string) {
+export async function deleteChatSession(sessionId: string) {
+  await prisma.chatSession.delete({
+    where: { id: sessionId },
+  });
+  revalidatePath("/chat");
+}
+
+export async function sendChatMessage(content: string, sessionId: string) {
   const command = parseCommand(content);
 
-  // Get recent messages to detect active mode
+  // Get recent messages from this session to detect active mode
   const recentMessages = await prisma.chatMessage.findMany({
-    where: { artistId: ARTIST_ID },
+    where: { sessionId },
     orderBy: { createdAt: "desc" },
     take: 20,
   });
   const reversed = recentMessages.reverse();
   const activeMode = getActiveMode(reversed);
 
+  // Auto-generate session title from first user message
+  if (reversed.length === 0) {
+    const title = content.startsWith("/")
+      ? content === "/artist-preferences"
+        ? "Preferências do Artista"
+        : content === "/production-artist"
+          ? "Planejamento de Carreira"
+          : content.slice(0, 50)
+      : content.length > 50
+        ? content.slice(0, 50) + "..."
+        : content;
+    await prisma.chatSession.update({
+      where: { id: sessionId },
+      data: { title },
+    });
+  }
+
   // Determine effective mode: explicit command takes priority, then active mode
   const effectiveMode = command.type !== "regular" ? command.type : activeMode;
 
   switch (effectiveMode) {
     case "artist-preferences":
-      return handleArtistPreferences(content, reversed);
+      return handleArtistPreferences(content, reversed, sessionId);
     case "production-artist":
-      return handleProductionArtist(content, reversed);
+      return handleProductionArtist(content, reversed, sessionId);
     default:
-      return handleRegularChat(content);
+      return handleRegularChat(content, sessionId);
   }
 }
 
-async function handleRegularChat(content: string) {
+async function handleRegularChat(content: string, sessionId: string) {
   // Save user message
   await prisma.chatMessage.create({
     data: {
       artistId: ARTIST_ID,
+      sessionId,
       role: "USER",
       content,
     },
@@ -843,9 +889,9 @@ async function handleRegularChat(content: string) {
 
   const fullSystemPrompt = systemPrompt + "\n\n" + extraContext.join("\n");
 
-  // Get recent chat history for context
+  // Get recent chat history for context (from this session)
   const chatHistory = await prisma.chatMessage.findMany({
-    where: { artistId: ARTIST_ID },
+    where: { sessionId },
     orderBy: { createdAt: "desc" },
     take: 20,
   });
@@ -873,17 +919,17 @@ async function handleRegularChat(content: string) {
   const assistantMessage = await prisma.chatMessage.create({
     data: {
       artistId: ARTIST_ID,
+      sessionId,
       role: "ASSISTANT",
       content: assistantContent,
     },
   });
 
-  return assistantMessage;
-}
-
-export async function clearChatHistory() {
-  await prisma.chatMessage.deleteMany({
-    where: { artistId: ARTIST_ID },
+  // Touch session updatedAt
+  await prisma.chatSession.update({
+    where: { id: sessionId },
+    data: { updatedAt: new Date() },
   });
-  revalidatePath("/chat");
+
+  return assistantMessage;
 }

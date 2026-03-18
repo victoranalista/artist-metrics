@@ -29,12 +29,14 @@ interface StageUpdateData {
 
 export async function handleProductionArtist(
   content: string,
-  recentMessages: ChatMessage[]
+  recentMessages: ChatMessage[],
+  sessionId: string
 ) {
   // Save user message with mode metadata
   await prisma.chatMessage.create({
     data: {
       artistId: ARTIST_ID,
+      sessionId,
       role: "USER",
       content,
       metadata: { mode: "production-artist" },
@@ -178,6 +180,7 @@ export async function handleProductionArtist(
   const assistantMessage = await prisma.chatMessage.create({
     data: {
       artistId: ARTIST_ID,
+      sessionId,
       role: "ASSISTANT",
       content: displayContent,
       metadata: messageMetadata,

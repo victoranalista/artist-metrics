@@ -7,12 +7,14 @@ const COMPLETION_REGEX = /\[PREFERENCES_COMPLETE\]\s*([\s\S]*?)\s*\[\/PREFERENCE
 
 export async function handleArtistPreferences(
   content: string,
-  recentMessages: ChatMessage[]
+  recentMessages: ChatMessage[],
+  sessionId: string
 ) {
   // Save user message with mode metadata
   await prisma.chatMessage.create({
     data: {
       artistId: ARTIST_ID,
+      sessionId,
       role: "USER",
       content,
       metadata: { mode: "artist-preferences" },
@@ -89,6 +91,7 @@ export async function handleArtistPreferences(
   const assistantMessage = await prisma.chatMessage.create({
     data: {
       artistId: ARTIST_ID,
+      sessionId,
       role: "ASSISTANT",
       content: displayContent,
       metadata: messageMetadata,
