@@ -41,7 +41,7 @@ Faca uma analise COMPLETA com dados reais da internet, incluindo:
 8. Pontos de Atencao`;
 
     const response = await openai.responses.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1-mini",
       instructions:
         "You are a music industry analyst specialized in digital marketing for independent artists. Always respond in Portuguese (PT-BR). Be specific and data-driven. USE THE WEB SEARCH TOOL to find real, current data about the artist across all platforms (YouTube, Instagram, Spotify, TikTok, etc). Bring actual numbers, links, and concrete information. Never say you cannot search - you have web search capabilities.",
       input,

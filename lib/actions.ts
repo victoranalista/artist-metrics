@@ -357,7 +357,7 @@ export async function sendChatMessage(content: string) {
   }));
 
   const response = await openai.responses.create({
-    model: "gpt-4o-mini",
+    model: "gpt-4.1-mini",
     instructions: systemPrompt,
     input: messages,
     tools: [
