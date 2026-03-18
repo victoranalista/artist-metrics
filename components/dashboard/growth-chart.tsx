@@ -56,8 +56,8 @@ const metrics = [
 ];
 
 export function GrowthChart({ data }: GrowthChartProps) {
-  const [timeRange, setTimeRange] = useState("90d");
-  const [metric, setMetric] = useState<"followers" | "views">("followers");
+  const [timeRange, setTimeRange] = useState("30d");
+  const [metric, setMetric] = useState<"followers" | "views">("views");
 
   const platforms = useMemo(() => {
     const set = new Set<string>();
