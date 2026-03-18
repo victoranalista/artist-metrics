@@ -286,7 +286,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
         </div>
 
         {/* Platform toggles */}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {connectedPlatforms.map((platform) => (
             <button
               key={platform}
@@ -323,7 +323,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
       ) : (
         <>
           {/* ── Section 2: KPI Summary Cards (per platform) ── */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* YouTube KPI Card */}
             {ytSnapshot && activePlatforms.has("YOUTUBE") && (
               <Card className="border-zinc-800 bg-zinc-900">
@@ -441,7 +441,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div>
                       <p className="text-xs text-zinc-500">Seguidores</p>
                       <p className="text-xl font-bold text-white">
@@ -479,11 +479,11 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
             </CardHeader>
             <CardContent>
               {dailyViewsChartData.length === 0 ? (
-                <div className="flex h-[300px] items-center justify-center text-sm text-zinc-600">
+                <div className="flex h-[220px] items-center justify-center text-sm text-zinc-600 sm:h-[300px]">
                   Nenhum dado disponivel para o periodo selecionado
                 </div>
               ) : (
-                <ChartContainer config={dailyViewsConfig} className="h-[300px] w-full">
+                <ChartContainer config={dailyViewsConfig} className="h-[220px] w-full sm:h-[300px]">
                   <AreaChart
                     data={dailyViewsChartData}
                     margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
@@ -543,11 +543,11 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
               </CardHeader>
               <CardContent>
                 {followersChartData.length === 0 ? (
-                  <div className="flex h-[280px] items-center justify-center text-sm text-zinc-600">
+                  <div className="flex h-[200px] sm:h-[280px] items-center justify-center text-sm text-zinc-600">
                     Nenhum dado disponivel para o periodo selecionado
                   </div>
                 ) : (
-                  <ChartContainer config={followersConfig} className="h-[280px] w-full">
+                  <ChartContainer config={followersConfig} className="h-[200px] sm:h-[280px] w-full">
                     <LineChart
                       data={followersChartData}
                       margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
@@ -605,11 +605,11 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
               </CardHeader>
               <CardContent>
                 {engagementChartData.length === 0 ? (
-                  <div className="flex h-[280px] items-center justify-center text-sm text-zinc-600">
+                  <div className="flex h-[200px] sm:h-[280px] items-center justify-center text-sm text-zinc-600">
                     Nenhum dado disponivel para o periodo selecionado
                   </div>
                 ) : (
-                  <ChartContainer config={engagementConfig} className="h-[280px] w-full">
+                  <ChartContainer config={engagementConfig} className="h-[200px] sm:h-[280px] w-full">
                     <BarChart
                       data={engagementChartData}
                       margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
@@ -666,7 +666,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                   <CardContent className="flex flex-col items-center justify-center py-6">
                     <Clock className="mb-2 size-6 text-zinc-500" />
                     <p className="text-xs text-zinc-500">Horas Assistidas</p>
-                    <p className="mt-1 text-3xl font-bold text-white">
+                    <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
                       {formatNumber(ytSnapshot.watchHours)}
                     </p>
                   </CardContent>
@@ -677,7 +677,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                   <CardContent className="flex flex-col items-center justify-center py-6">
                     <Activity className="mb-2 size-6 text-zinc-500" />
                     <p className="text-xs text-zinc-500">Retencao Media</p>
-                    <p className="mt-1 text-3xl font-bold text-white">
+                    <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
                       {formatPercent(ytSnapshot.retention)}
                     </p>
                   </CardContent>
@@ -688,7 +688,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                   <CardContent className="flex flex-col items-center justify-center py-6">
                     <Eye className="mb-2 size-6 text-zinc-500" />
                     <p className="text-xs text-zinc-500">Duracao Media (s)</p>
-                    <p className="mt-1 text-3xl font-bold text-white">
+                    <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
                       {formatNumber(ytSnapshot.avgDuration)}
                     </p>
                   </CardContent>
@@ -725,7 +725,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                   <CardContent className="flex flex-col items-center justify-center py-6">
                     <Eye className="mb-2 size-6 text-zinc-500" />
                     <p className="text-xs text-zinc-500">Alcance Total (periodo)</p>
-                    <p className="mt-1 text-3xl font-bold text-white">
+                    <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
                       {formatNumber(
                         sumField(filteredHistory, "INSTAGRAM", "dailyViews")
                       )}
@@ -738,7 +738,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                   <CardContent className="flex flex-col items-center justify-center py-6">
                     <UserPlus className="mb-2 size-6 text-zinc-500" />
                     <p className="text-xs text-zinc-500">Novos Seguidores (periodo)</p>
-                    <p className="mt-1 text-3xl font-bold text-white">
+                    <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
                       {formatNumber(
                         sumField(filteredHistory, "INSTAGRAM", "subsGained")
                       )}
@@ -751,7 +751,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                   <CardContent className="flex flex-col items-center justify-center py-6">
                     <TrendingUp className="mb-2 size-6 text-zinc-500" />
                     <p className="text-xs text-zinc-500">Taxa de Engajamento</p>
-                    <p className="mt-1 text-3xl font-bold text-white">
+                    <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
                       {formatPercent(igSnapshot.engagementRate)}
                     </p>
                   </CardContent>
@@ -762,7 +762,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                   <CardContent className="flex flex-col items-center justify-center py-6">
                     <Image className="mb-2 size-6 text-zinc-500" />
                     <p className="text-xs text-zinc-500">Total de Posts</p>
-                    <p className="mt-1 text-3xl font-bold text-white">
+                    <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
                       {formatNumber(igSnapshot.mediaCount)}
                     </p>
                   </CardContent>

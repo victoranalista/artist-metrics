@@ -51,9 +51,9 @@ export function HeroStat({ value, label }: HeroStatProps) {
         duration: 0.7,
         ease: [0.215, 0.61, 0.355, 1],
       }}
-      className="flex flex-col items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900/60 py-12"
+      className="flex flex-col items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900/60 py-8 sm:py-12"
     >
-      <p className="text-5xl font-extrabold tracking-tight text-white sm:text-6xl">
+      <p className="text-3xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl">
         <AnimatedCounter value={value} />
       </p>
       <p className="mt-2 text-sm font-medium uppercase tracking-widest text-zinc-500">

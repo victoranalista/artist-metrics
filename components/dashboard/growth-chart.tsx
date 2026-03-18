@@ -103,7 +103,7 @@ export function GrowthChart({ data }: GrowthChartProps) {
             {metric === "followers" ? "Inscritos" : "Visualizações"} ao longo do tempo
           </CardDescription>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {/* Metric toggle */}
           <div className="flex rounded-lg border border-zinc-800 bg-zinc-950 p-0.5">
             {metrics.map((m) => (
@@ -140,8 +140,8 @@ export function GrowthChart({ data }: GrowthChartProps) {
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         {filteredData.length <= 2 ? (
-          <div className="flex h-[250px] flex-col items-center justify-center gap-4 text-center">
-            <div className="grid w-full max-w-md grid-cols-3 gap-3">
+          <div className="flex h-[200px] flex-col items-center justify-center gap-4 text-center sm:h-[250px]">
+            <div className="grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-3">
               {platforms.map((p) => {
                 const latest = filteredData[filteredData.length - 1];
                 const val = latest ? (latest[p] as number) ?? 0 : 0;
@@ -162,7 +162,7 @@ export function GrowthChart({ data }: GrowthChartProps) {
         ) : (
           <ChartContainer
             config={chartConfig}
-            className="aspect-auto h-[250px] w-full"
+            className="aspect-auto h-[200px] w-full sm:h-[250px]"
           >
             <AreaChart data={filteredData}>
               <defs>

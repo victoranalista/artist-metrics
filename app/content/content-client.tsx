@@ -223,7 +223,7 @@ export function ContentClient({ content }: ContentClientProps) {
       {/* ── Section 1: Resumo (3 cards) ── */}
       <MotionSection>
         <h2 className="mb-4 text-lg font-semibold text-white">Resumo</h2>
-        <MotionStagger className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <MotionStagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <MotionItem>
             <Card className="border-zinc-800 bg-zinc-900">
               <CardContent className="pt-0">
@@ -317,7 +317,7 @@ export function ContentClient({ content }: ContentClientProps) {
                   </p>
 
                   {/* Mini KPI grid */}
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                     <div className="rounded-lg bg-zinc-800/50 px-3 py-2">
                       <p className="flex items-center gap-1 text-xs text-zinc-500">
                         <Eye className="size-3" /> Views
@@ -385,7 +385,7 @@ export function ContentClient({ content }: ContentClientProps) {
       {Object.keys(byPlatform).length > 0 && (
         <MotionSection delay={0.15}>
           <h2 className="mb-4 text-lg font-semibold text-white">Performance por Plataforma</h2>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(["YOUTUBE", "INSTAGRAM", "SPOTIFY"] as const).map((plat) => {
               const items = byPlatform[plat];
               if (!items || items.length === 0) return null;
@@ -451,7 +451,7 @@ export function ContentClient({ content }: ContentClientProps) {
         <h2 className="mb-4 text-lg font-semibold text-white">Todos os Conteudos</h2>
 
         {/* Filter tabs */}
-        <div className="mb-4 flex gap-1 rounded-lg border border-zinc-800 bg-zinc-900 p-1 w-fit">
+        <div className="mb-4 flex gap-1 overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900 p-1 w-fit max-w-full">
           {filterTabs.map((tab) => (
             <button
               key={tab.key}

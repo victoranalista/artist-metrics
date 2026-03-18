@@ -338,7 +338,7 @@ export function AudienceClient({
       {/* ── Section 2: Publico por Plataforma ── */}
       <MotionSection delay={0.1}>
         <h2 className="mb-4 text-lg font-semibold text-white">Publico por Plataforma</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {platformOrder.map((plat) => {
             const followers = platformFollowers[plat] ?? 0;
             if (followers === 0) return null;
@@ -486,7 +486,7 @@ export function AudienceClient({
                 {topContent.map((item, i) => (
                   <div
                     key={`${item.platform}-${item.title}-${i}`}
-                    className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
+                    className="flex flex-wrap items-center gap-3 py-4 first:pt-0 last:pb-0 sm:flex-nowrap sm:gap-4"
                   >
                     {/* Rank */}
                     <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-zinc-800 text-sm font-bold text-zinc-400">
@@ -535,7 +535,7 @@ export function AudienceClient({
                     </div>
 
                     {/* Stats */}
-                    <div className="flex shrink-0 items-center gap-4 text-xs text-zinc-400">
+                    <div className="flex shrink-0 flex-wrap items-center gap-3 text-xs text-zinc-400 sm:gap-4">
                       {item.views > 0 && (
                         <span className="flex items-center gap-1">
                           <Eye className="size-3 text-zinc-600" />

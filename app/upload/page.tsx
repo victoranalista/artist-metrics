@@ -24,7 +24,7 @@ export default async function UploadPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
               UPLOAD
             </p>
-            <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
+            <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl">
               Registre suas métricas
             </h1>
             <p className="max-w-md text-base leading-relaxed text-zinc-400">
@@ -35,7 +35,7 @@ export default async function UploadPage() {
             <img
               src="/artist/studio.webp"
               alt="Debora Kailany"
-              className="h-[280px] w-full object-cover sm:h-[350px] md:h-[400px]"
+              className="h-[200px] w-full object-cover sm:h-[280px] md:h-[350px]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/60 to-transparent" />
           </div>

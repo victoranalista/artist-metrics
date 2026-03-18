@@ -62,7 +62,7 @@ export function PlatformComparison({ data }: PlatformComparisonProps) {
   );
 
   return (
-    <MotionStagger className="grid grid-cols-1 gap-4 md:grid-cols-3">
+    <MotionStagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
       {platforms.map((platform) => {
         const Icon = platformIcons[platform.platform] || Music2;
         const name = platformNames[platform.platform] || platform.platform;
