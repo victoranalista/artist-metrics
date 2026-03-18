@@ -17,12 +17,28 @@ export default async function UploadPage() {
 
   return (
     <>
-      <div className="relative overflow-hidden rounded-2xl">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url(/artist/studio.webp)" }} />
-        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent" />
-        <div className="relative px-6 py-8 sm:px-8 sm:py-10">
-          <h1 className="text-xl font-bold text-white sm:text-2xl">Upload de Metricas</h1>
-          <p className="mt-1 max-w-md text-sm text-zinc-400">Registre metricas manualmente</p>
+      {/* Hero Section */}
+      <div className="mb-8 sm:mb-12">
+        <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-2 md:gap-12">
+          <div className="space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+              UPLOAD
+            </p>
+            <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
+              Registre suas metricas
+            </h1>
+            <p className="max-w-md text-base leading-relaxed text-zinc-400">
+              Adicione dados manualmente de plataformas que nao estao conectadas. Mantenha tudo centralizado.
+            </p>
+          </div>
+          <div className="relative overflow-hidden rounded-xl">
+            <img
+              src="/artist/studio.webp"
+              alt="Debora Kailany"
+              className="h-[280px] w-full object-cover sm:h-[350px] md:h-[400px]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/60 to-transparent" />
+          </div>
         </div>
       </div>
       <UploadClient existingMetrics={serializedMetrics} />
