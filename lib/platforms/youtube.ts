@@ -119,6 +119,168 @@ async function fetchRecentVideos(
   );
 }
 
+// ── YouTube Analytics API (métricas profundas) ──
+
+async function fetchAnalyticsOverview(accessToken: string) {
+  const endDate = new Date().toISOString().split("T")[0];
+  const startDate = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0];
+
+  const metrics = [
+    "views",
+    "estimatedMinutesWatched",
+    "averageViewDuration",
+    "averageViewPercentage",
+    "subscribersGained",
+    "subscribersLost",
+    "likes",
+    "dislikes",
+    "comments",
+    "shares",
+  ].join(",");
+
+  try {
+    const res = await fetch(
+      `https://youtubeanalytics.googleapis.com/v2/reports?ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&metrics=${metrics}&dimensions=day&sort=day`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const data = await res.json();
+    if (data.error) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchAnalyticsDemographics(accessToken: string) {
+  const endDate = new Date().toISOString().split("T")[0];
+  const startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0];
+
+  try {
+    // Faixa etária e gênero
+    const ageRes = await fetch(
+      `https://youtubeanalytics.googleapis.com/v2/reports?ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&metrics=viewerPercentage&dimensions=ageGroup,gender&sort=gender,ageGroup`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const ageData = await ageRes.json();
+
+    // Países
+    const countryRes = await fetch(
+      `https://youtubeanalytics.googleapis.com/v2/reports?ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&metrics=views,estimatedMinutesWatched&dimensions=country&sort=-views&maxResults=10`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const countryData = await countryRes.json();
+
+    // Fontes de tráfego
+    const trafficRes = await fetch(
+      `https://youtubeanalytics.googleapis.com/v2/reports?ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&metrics=views&dimensions=insightTrafficSourceType&sort=-views&maxResults=10`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const trafficData = await trafficRes.json();
+
+    return { ageData, countryData, trafficData };
+  } catch {
+    return null;
+  }
+}
+
+function parseAnalytics(analyticsData: Record<string, unknown> | null) {
+  if (!analyticsData || !Array.isArray((analyticsData as { rows?: unknown }).rows)) return null;
+
+  const rows = (analyticsData as { rows: (string | number)[][] }).rows;
+  let totalViews = 0;
+  let totalMinutesWatched = 0;
+  let totalAvgDuration = 0;
+  let totalAvgPercentage = 0;
+  let totalSubsGained = 0;
+  let totalSubsLost = 0;
+  let totalLikes = 0;
+  let totalComments = 0;
+  let totalShares = 0;
+
+  for (const row of rows) {
+    totalViews += (row[1] as number) || 0;
+    totalMinutesWatched += (row[2] as number) || 0;
+    totalAvgDuration += (row[3] as number) || 0;
+    totalAvgPercentage += (row[4] as number) || 0;
+    totalSubsGained += (row[5] as number) || 0;
+    totalSubsLost += (row[6] as number) || 0;
+    totalLikes += (row[7] as number) || 0;
+    totalComments += (row[9] as number) || 0;
+    totalShares += (row[10] as number) || 0;
+  }
+
+  const days = rows.length || 1;
+
+  return {
+    periodo28dias: {
+      visualizacoes: totalViews,
+      minutosAssistidos: Math.round(totalMinutesWatched),
+      horasAssistidas: Math.round(totalMinutesWatched / 60),
+      duracaoMediaSegundos: Math.round(totalAvgDuration / days),
+      retencaoMedia: Math.round((totalAvgPercentage / days) * 100) / 100,
+      inscritosGanhos: totalSubsGained,
+      inscritosPerdidos: totalSubsLost,
+      saldoInscritos: totalSubsGained - totalSubsLost,
+      curtidas: totalLikes,
+      comentarios: totalComments,
+      compartilhamentos: totalShares,
+    },
+  };
+}
+
+function parseDemographics(demoData: {
+  ageData?: Record<string, unknown>;
+  countryData?: Record<string, unknown>;
+  trafficData?: Record<string, unknown>;
+} | null) {
+  if (!demoData) return null;
+
+  const ageRanges: Record<string, number> = {};
+  const genderSplit: Record<string, number> = {};
+  const topCountries: Record<string, number> = {};
+
+  // Faixa etária e gênero
+  if (demoData.ageData && Array.isArray((demoData.ageData as { rows?: unknown }).rows)) {
+    for (const row of (demoData.ageData as { rows: (string | number)[][] }).rows) {
+      const ageGroup = row[0] as string;
+      const gender = row[1] as string;
+      const pct = row[2] as number;
+
+      ageRanges[ageGroup] = (ageRanges[ageGroup] || 0) + pct;
+      const gLabel = gender === "male" ? "Masculino" : gender === "female" ? "Feminino" : "Outro";
+      genderSplit[gLabel] = (genderSplit[gLabel] || 0) + pct;
+    }
+  }
+
+  // Países
+  if (demoData.countryData && Array.isArray((demoData.countryData as { rows?: unknown }).rows)) {
+    for (const row of (demoData.countryData as { rows: (string | number)[][] }).rows) {
+      topCountries[row[0] as string] = row[1] as number;
+    }
+  }
+
+  // Fontes de tráfego
+  const trafficSources: Record<string, number> = {};
+  if (demoData.trafficData && Array.isArray((demoData.trafficData as { rows?: unknown }).rows)) {
+    for (const row of (demoData.trafficData as { rows: (string | number)[][] }).rows) {
+      trafficSources[row[0] as string] = row[1] as number;
+    }
+  }
+
+  return {
+    ageRanges: Object.keys(ageRanges).length > 0 ? ageRanges : null,
+    genderSplit: Object.keys(genderSplit).length > 0 ? genderSplit : null,
+    topCountries: Object.keys(topCountries).length > 0 ? topCountries : null,
+    topCities: trafficSources, // usando campo topCities pra guardar fontes de tráfego
+  };
+}
+
+// ── Coletor principal ──
+
 export async function collectYouTubeMetrics(
   connection: PlatformConnection
 ): Promise<CollectedMetrics> {
@@ -144,6 +306,12 @@ export async function collectYouTubeMetrics(
       ? parseInt(stats.videoCount, 10)
       : null;
 
+    // YouTube Analytics API - métricas profundas
+    const analyticsRaw = await fetchAnalyticsOverview(accessToken);
+    const analytics = parseAnalytics(analyticsRaw);
+    const demoRaw = await fetchAnalyticsDemographics(accessToken);
+    const audience = parseDemographics(demoRaw);
+
     // Calculate engagement rate from recent videos
     let engagementRate: number | null = null;
     if (content.length > 0 && subscribers && subscribers > 0) {
@@ -156,18 +324,22 @@ export async function collectYouTubeMetrics(
     return {
       followers: subscribers,
       totalViews,
-      totalLikes: null,
-      totalComments: null,
-      totalShares: null,
+      totalLikes: analytics?.periodo28dias.curtidas ?? null,
+      totalComments: analytics?.periodo28dias.comentarios ?? null,
+      totalShares: analytics?.periodo28dias.compartilhamentos ?? null,
       engagementRate,
       platformData: {
         channelId: channel.id,
         channelTitle: channel.snippet?.title,
         videoCount,
         hiddenSubscriberCount: stats.hiddenSubscriberCount,
+        // Métricas do YouTube Analytics (últimos 28 dias)
+        ...(analytics ? {
+          analytics: analytics.periodo28dias,
+        } : {}),
       },
       content,
-      audience: null,
+      audience,
     };
   } catch (error) {
     console.error("YouTube metrics collection failed:", error);
