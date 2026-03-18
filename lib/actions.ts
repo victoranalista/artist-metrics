@@ -360,6 +360,12 @@ export async function sendChatMessage(content: string) {
     model: "gpt-4o",
     instructions: systemPrompt,
     input: messages,
+    tools: [
+      {
+        type: "web_search_preview",
+        search_context_size: "medium",
+      },
+    ],
   });
 
   const assistantContent = response.output_text;

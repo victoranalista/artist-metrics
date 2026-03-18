@@ -19,29 +19,38 @@ export async function researchArtist(channelData: ChannelData): Promise<string> 
       )
       .join("\n");
 
-    const input = `Analyze this YouTube channel and provide a structured analysis in Portuguese (PT-BR):
+    const input = `Pesquise na internet e analise o canal/artista "${channelData.title}" em detalhes. Use os dados abaixo como base, mas BUSQUE INFORMACOES ADICIONAIS na web sobre este artista (redes sociais, Spotify, noticias, colaboracoes, etc).
 
-Channel: ${channelData.title}
-Description: ${channelData.description}
-Subscribers: ${channelData.subscriberCount.toLocaleString()}
-Total Videos: ${channelData.videoCount}
-Total Views: ${channelData.viewCount.toLocaleString()}
+Dados do Canal YouTube:
+- Canal: ${channelData.title}
+- Descricao: ${channelData.description}
+- Inscritos: ${channelData.subscriberCount.toLocaleString()}
+- Total de Videos: ${channelData.videoCount}
+- Total de Views: ${channelData.viewCount.toLocaleString()}
 
-${videoList ? `Recent Videos:\n${videoList}` : ""}
+${videoList ? `Videos Recentes:\n${videoList}` : ""}
 
-Provide your analysis with the following sections:
-1. Estilo Musical e Identidade Artistica
-2. Perfil do Publico-Alvo
-3. Analise de Conteudo (o que funciona e o que nao funciona)
-4. Estrategia de Crescimento Recomendada
-5. Oportunidades Identificadas
-6. Pontos de Atencao`;
+Faca uma analise COMPLETA com dados reais da internet, incluindo:
+1. Estilo Musical e Identidade Artistica (pesquise genero, influencias, nicho)
+2. Presenca Digital Completa (YouTube, Instagram, Spotify, TikTok - busque os numeros reais)
+3. Perfil do Publico-Alvo (baseado no conteudo e engajamento)
+4. Analise de Conteudo (o que funciona, o que pode melhorar)
+5. Posicionamento no Mercado (compare com artistas similares do mesmo nicho)
+6. Estrategia de Crescimento Recomendada (acoes especificas e praticas)
+7. Oportunidades Identificadas (playlists, colaboracoes, tendencias)
+8. Pontos de Atencao`;
 
     const response = await openai.responses.create({
       model: "gpt-4o",
       instructions:
-        "You are a music industry analyst specialized in digital marketing for independent artists. Always respond in Portuguese (PT-BR). Be specific and data-driven in your analysis. Provide actionable insights.",
+        "You are a music industry analyst specialized in digital marketing for independent artists. Always respond in Portuguese (PT-BR). Be specific and data-driven. USE THE WEB SEARCH TOOL to find real, current data about the artist across all platforms (YouTube, Instagram, Spotify, TikTok, etc). Bring actual numbers, links, and concrete information. Never say you cannot search - you have web search capabilities.",
       input,
+      tools: [
+        {
+          type: "web_search_preview",
+          search_context_size: "high",
+        },
+      ],
     });
 
     return response.output_text;
