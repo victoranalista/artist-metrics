@@ -581,32 +581,55 @@ export async function sendChatMessage(content: string) {
     },
   });
 
-  // Get context
+  // ── Buscar TODOS os dados do banco para contexto do chat ──
+
   const artist = await prisma.artist.findUniqueOrThrow({
     where: { id: ARTIST_ID },
   });
 
-  const snapshots = await getLatestSnapshots();
-  const metricsSummary = buildMetricsSummaryFromSnapshots(snapshots);
+  // Conexões ativas
+  const connections = await prisma.platformConnection.findMany({
+    where: { artistId: ARTIST_ID },
+    select: { platform: true, status: true, displayName: true, metadata: true, connectedAt: true },
+  });
 
-  const allContent: ContentItem[] = snapshots.flatMap((s) =>
-    s.contentMetrics.map((c) => ({
-      contentId: c.contentId,
-      contentType: c.contentType,
-      title: c.title,
-      thumbnailUrl: c.thumbnailUrl,
-      publishedAt: c.publishedAt,
-      url: c.url,
-      views: c.views,
-      likes: c.likes,
-      comments: c.comments,
-      shares: c.shares,
-      saves: c.saves,
-      platformData: (c.platformData ?? {}) as Record<string, unknown>,
-    }))
-  );
+  // Últimos snapshots por plataforma (com conteúdo e audiência)
+  const latestSnapshots = await getLatestSnapshots();
+  const metricsSummary = buildMetricsSummaryFromSnapshots(latestSnapshots);
 
-  const audienceSnapshot = snapshots.find((s) => s.audienceMetrics);
+  // Histórico de 28 dias por plataforma para tendências
+  const history28d = await prisma.metricsSnapshot.findMany({
+    where: {
+      artistId: ARTIST_ID,
+      date: { gte: new Date(Date.now() - 28 * 86400000) },
+    },
+    orderBy: { date: "asc" },
+    select: { platform: true, date: true, followers: true, totalViews: true, totalLikes: true, totalComments: true, engagementRate: true, platformData: true },
+  });
+
+  // Todo o conteúdo (de-duplicado)
+  const contentMap = new Map<string, { platform: string; contentId: string; type: string; title: string | null; views: number | null; likes: number | null; comments: number | null; url: string | null; date: string | null }>();
+  for (const s of latestSnapshots) {
+    for (const c of s.contentMetrics) {
+      if (!contentMap.has(c.contentId) || ((c.views ?? 0) + (c.likes ?? 0)) > ((contentMap.get(c.contentId)?.views ?? 0) + (contentMap.get(c.contentId)?.likes ?? 0))) {
+        contentMap.set(c.contentId, {
+          platform: s.platform,
+          contentId: c.contentId,
+          type: c.contentType,
+          title: c.title,
+          views: c.views,
+          likes: c.likes,
+          comments: c.comments,
+          url: c.url,
+          date: c.publishedAt?.toISOString().split("T")[0] ?? null,
+        });
+      }
+    }
+  }
+  const allContent = Array.from(contentMap.values()).sort((a, b) => ((b.likes ?? 0) + (b.views ?? 0)) - ((a.likes ?? 0) + (a.views ?? 0)));
+
+  // Audiência
+  const audienceSnapshot = latestSnapshots.find((s) => s.audienceMetrics);
   const audience = audienceSnapshot?.audienceMetrics
     ? {
         ageRanges: (audienceSnapshot.audienceMetrics.ageRanges ?? null) as Record<string, number> | null,
@@ -616,28 +639,139 @@ export async function sendChatMessage(content: string) {
       }
     : null;
 
-  const systemPrompt = buildSystemPrompt(
-    artist,
-    metricsSummary,
-    allContent,
-    audience
-  );
+  // ── Construir contexto completo para o AI ──
+
+  const systemPrompt = buildSystemPrompt(artist, metricsSummary, allContent.map((c) => ({
+    contentId: c.contentId,
+    contentType: c.type,
+    title: c.title,
+    thumbnailUrl: null,
+    publishedAt: c.date ? new Date(c.date) : null,
+    url: c.url,
+    views: c.views,
+    likes: c.likes,
+    comments: c.comments,
+    shares: null,
+    saves: null,
+    platformData: {} as Record<string, unknown>,
+  })), audience);
+
+  // Dados extras que o prompt padrão não inclui
+  const extraContext: string[] = [];
+
+  // Conexões
+  extraContext.push(`## Plataformas Conectadas`);
+  for (const conn of connections) {
+    const meta = (conn.metadata ?? {}) as Record<string, unknown>;
+    extraContext.push(`- ${conn.platform}: ${conn.displayName ?? "conectado"} (${conn.status}) — desde ${conn.connectedAt?.toISOString().split("T")[0] ?? "?"}`);
+    if (meta.monthlyListeners) extraContext.push(`  Ouvintes mensais: ${meta.monthlyListeners}`);
+    if (meta.genres) extraContext.push(`  Gêneros: ${(meta.genres as string[]).join(", ")}`);
+    if (meta.biography) extraContext.push(`  Bio: ${(meta.biography as string).substring(0, 200)}`);
+    if (meta.spotifyUrl) extraContext.push(`  Spotify: ${meta.spotifyUrl}`);
+  }
+
+  // Tendências dos últimos 28 dias por plataforma
+  extraContext.push(`\n## Tendências dos Últimos 28 Dias`);
+  for (const plat of ["YOUTUBE", "INSTAGRAM", "SPOTIFY"] as const) {
+    const platData = history28d.filter((s) => s.platform === plat);
+    if (platData.length < 2) continue;
+
+    const first = platData[0];
+    const last = platData[platData.length - 1];
+    const firstFollowers = first.followers ?? 0;
+    const lastFollowers = last.followers ?? 0;
+    const followerChange = lastFollowers - firstFollowers;
+
+    // Views/alcance diário
+    const totalDailyViews = platData.reduce((s, d) => {
+      const pd = (d.platformData ?? {}) as Record<string, number>;
+      return s + (pd.dailyViews ?? pd.dailyStreams ?? pd.alcanceDiario ?? d.totalViews ?? 0);
+    }, 0);
+
+    const totalLikes = platData.reduce((s, d) => s + (d.totalLikes ?? 0), 0);
+    const totalComments = platData.reduce((s, d) => s + (d.totalComments ?? 0), 0);
+
+    // Picos
+    let peakDay = platData[0];
+    let peakViews = 0;
+    for (const d of platData) {
+      const pd = (d.platformData ?? {}) as Record<string, number>;
+      const dv = pd.dailyViews ?? pd.dailyStreams ?? pd.alcanceDiario ?? 0;
+      if (dv > peakViews) { peakViews = dv; peakDay = d; }
+    }
+
+    extraContext.push(`### ${plat}`);
+    extraContext.push(`- Período: ${first.date.toISOString().split("T")[0]} a ${last.date.toISOString().split("T")[0]} (${platData.length} dias)`);
+    extraContext.push(`- Seguidores: ${firstFollowers.toLocaleString("pt-BR")} → ${lastFollowers.toLocaleString("pt-BR")} (${followerChange >= 0 ? "+" : ""}${followerChange})`);
+    extraContext.push(`- Views/alcance total no período: ${totalDailyViews.toLocaleString("pt-BR")}`);
+    extraContext.push(`- Média diária: ${Math.round(totalDailyViews / platData.length).toLocaleString("pt-BR")}`);
+    if (totalLikes > 0) extraContext.push(`- Curtidas totais: ${totalLikes.toLocaleString("pt-BR")}`);
+    if (totalComments > 0) extraContext.push(`- Comentários totais: ${totalComments.toLocaleString("pt-BR")}`);
+    extraContext.push(`- Dia de pico: ${peakDay.date.toISOString().split("T")[0]} com ${peakViews.toLocaleString("pt-BR")} views/alcance`);
+
+    // YouTube Analytics extras
+    if (plat === "YOUTUBE") {
+      const ytLast = (last.platformData ?? {}) as Record<string, unknown>;
+      const analytics = (ytLast.analytics ?? (latestSnapshots.find(s => s.platform === "YOUTUBE")?.platformData as Record<string, unknown>)?.analytics) as Record<string, number> | undefined;
+      if (analytics) {
+        extraContext.push(`- Horas assistidas (28d): ${analytics.horasAssistidas ?? 0}`);
+        extraContext.push(`- Retenção média: ${analytics.retencaoMedia ?? 0}%`);
+        extraContext.push(`- Duração média de visualização: ${analytics.duracaoMediaSegundos ?? 0}s`);
+        extraContext.push(`- Inscritos ganhos: +${analytics.inscritosGanhos ?? 0} / perdidos: -${analytics.inscritosPerdidos ?? 0}`);
+        extraContext.push(`- Compartilhamentos: ${analytics.compartilhamentos ?? 0}`);
+      }
+    }
+  }
+
+  // Top conteúdos
+  extraContext.push(`\n## Top 15 Conteúdos por Engajamento`);
+  for (const c of allContent.slice(0, 15)) {
+    const stats = [];
+    if (c.views) stats.push(`${c.views.toLocaleString("pt-BR")} views`);
+    if (c.likes) stats.push(`${c.likes.toLocaleString("pt-BR")} curtidas`);
+    if (c.comments) stats.push(`${c.comments.toLocaleString("pt-BR")} comentários`);
+    extraContext.push(`- [${c.platform}] "${c.title ?? "Sem título"}" (${c.type}) — ${stats.join(", ")}${c.date ? ` — ${c.date}` : ""}${c.url ? ` — ${c.url}` : ""}`);
+  }
+
+  // Audiência detalhada
+  if (audience) {
+    extraContext.push(`\n## Audiência Detalhada`);
+    if (audience.topCountries) {
+      extraContext.push(`### Países (por views)`);
+      for (const [country, views] of Object.entries(audience.topCountries).sort(([, a], [, b]) => b - a).slice(0, 10)) {
+        extraContext.push(`- ${country}: ${views.toLocaleString("pt-BR")} views`);
+      }
+    }
+    if (audience.topCities) {
+      extraContext.push(`### Fontes de Tráfego`);
+      const trafficLabels: Record<string, string> = {
+        SHORTS: "YouTube Shorts", YT_SEARCH: "Busca no YouTube", SUBSCRIBER: "Inscritos",
+        YT_CHANNEL: "Página do canal", EXT_URL: "Links externos", PLAYLIST: "Playlists",
+        BROWSE_FEATURES: "Explorar", NOTIFICATION: "Notificações",
+      };
+      for (const [source, views] of Object.entries(audience.topCities).sort(([, a], [, b]) => (b as number) - (a as number)).slice(0, 10)) {
+        extraContext.push(`- ${trafficLabels[source] ?? source}: ${(views as number).toLocaleString("pt-BR")} views`);
+      }
+    }
+  }
+
+  const fullSystemPrompt = systemPrompt + "\n\n" + extraContext.join("\n");
 
   // Get recent chat history for context
-  const history = await prisma.chatMessage.findMany({
+  const chatHistory = await prisma.chatMessage.findMany({
     where: { artistId: ARTIST_ID },
     orderBy: { createdAt: "desc" },
     take: 20,
   });
 
-  const messages = history.reverse().map((m) => ({
+  const messages = chatHistory.reverse().map((m) => ({
     role: m.role === "USER" ? ("user" as const) : ("assistant" as const),
     content: m.content,
   }));
 
   const response = await openai.responses.create({
     model: "gpt-5.4-mini",
-    instructions: systemPrompt,
+    instructions: fullSystemPrompt,
     input: messages,
     tools: [
       {
