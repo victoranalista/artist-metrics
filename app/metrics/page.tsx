@@ -1,35 +1,67 @@
 import { getMetricsHistory, getLatestSnapshots } from "@/lib/actions";
+import { prisma, ARTIST_ID } from "@/lib/db";
 import { MetricsClient } from "./metrics-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function MetricsPage() {
-  const [history, snapshots] = await Promise.all([
-    getMetricsHistory(undefined, 90),
+  const [historyRaw, snapshots] = await Promise.all([
+    prisma.metricsSnapshot.findMany({
+      where: { artistId: ARTIST_ID, date: { gte: new Date(Date.now() - 90 * 86400000) } },
+      orderBy: { date: "asc" },
+      select: { id: true, platform: true, date: true, followers: true, totalViews: true, totalLikes: true, totalComments: true, totalShares: true, engagementRate: true, platformData: true },
+    }),
     getLatestSnapshots(),
   ]);
 
-  // Serialize dates for client component
-  const serializedHistory = history.map((h) => ({
-    id: h.id,
-    platform: h.platform,
-    date: h.date.toISOString(),
-    followers: h.followers ?? 0,
-    totalViews: h.totalViews ?? 0,
-    totalLikes: h.totalLikes ?? 0,
-    totalComments: h.totalComments ?? 0,
-    engagementRate: h.engagementRate ?? 0,
-  }));
+  // Serialize com dados diários extraídos do platformData
+  const serializedHistory = historyRaw.map((h) => {
+    const pd = (h.platformData ?? {}) as Record<string, unknown>;
+    const dailyViews = (pd.dailyViews as number) ?? (pd.dailyStreams as number) ?? (pd.alcanceDiario as number) ?? 0;
+    const watchHours = (pd.hoursWatched as number) ?? (pd.horasAssistidas as number) ?? 0;
+    const subsGained = (pd.subsGained as number) ?? (pd.novosSeguidores as number) ?? 0;
+    return {
+      id: h.id,
+      platform: h.platform,
+      date: h.date.toISOString(),
+      followers: h.followers ?? 0,
+      totalViews: h.totalViews ?? 0,
+      dailyViews,
+      totalLikes: h.totalLikes ?? 0,
+      totalComments: h.totalComments ?? 0,
+      totalShares: h.totalShares ?? 0,
+      engagementRate: h.engagementRate ?? 0,
+      watchHours,
+      subsGained,
+    };
+  });
 
-  const serializedSnapshots = snapshots.map((s) => ({
-    platform: s.platform,
-    followers: s.followers ?? 0,
-    totalViews: s.totalViews ?? 0,
-    totalLikes: s.totalLikes ?? 0,
-    totalComments: s.totalComments ?? 0,
-    engagementRate: s.engagementRate ?? 0,
-    date: s.date.toISOString(),
-  }));
+  const serializedSnapshots = snapshots.map((s) => {
+    const pd = (s.platformData ?? {}) as Record<string, unknown>;
+    const analytics = (pd.analytics ?? {}) as Record<string, number>;
+    return {
+      platform: s.platform,
+      followers: s.followers ?? 0,
+      totalViews: s.totalViews ?? 0,
+      totalLikes: s.totalLikes ?? 0,
+      totalComments: s.totalComments ?? 0,
+      totalShares: s.totalShares ?? 0,
+      engagementRate: s.engagementRate ?? 0,
+      date: s.date.toISOString(),
+      // YouTube Analytics extras
+      watchHours: analytics.horasAssistidas ?? 0,
+      retention: analytics.retencaoMedia ?? 0,
+      avgDuration: analytics.duracaoMediaSegundos ?? 0,
+      subsGained: analytics.inscritosGanhos ?? 0,
+      subsLost: analytics.inscritosPerdidos ?? 0,
+      shares: analytics.compartilhamentos ?? (s.totalShares ?? 0),
+      // Spotify extras
+      monthlyListeners: (pd.monthlyListeners as number) ?? 0,
+      totalStreams: (pd.totalStreams as number) ?? 0,
+      // Instagram extras
+      mediaCount: (pd.mediaCount as number) ?? 0,
+    };
+  });
 
   return (
     <>
