@@ -4,6 +4,11 @@ import { prisma, ARTIST_ID } from "@/lib/db";
 import { collectYouTubeMetrics } from "@/lib/platforms/youtube";
 import { collectInstagramMetrics } from "@/lib/platforms/instagram";
 import { collectSpotifyMetrics } from "@/lib/platforms/spotify";
+import {
+  fetchYouTubePublicData,
+  fetchSpotifyPublicData,
+  fetchInstagramPublicData,
+} from "@/lib/platforms/public-fetch";
 import { openai } from "@/lib/ai/client";
 import {
   buildSystemPrompt,
@@ -60,6 +65,246 @@ export async function disconnectPlatform(platform: string) {
     },
   });
   revalidatePath("/connections");
+}
+
+// ── Connect by Profile (Public API) ──
+
+export async function connectByProfile(platform: string, profileInput: string) {
+  const platformKey = platform.toUpperCase() as "YOUTUBE" | "INSTAGRAM" | "SPOTIFY";
+
+  try {
+    if (platformKey === "INSTAGRAM") {
+      const result = await fetchInstagramPublicData(profileInput);
+      return { error: result.error };
+    }
+
+    if (platformKey === "YOUTUBE") {
+      const data = await fetchYouTubePublicData(profileInput);
+
+      // Upsert PlatformConnection
+      await prisma.platformConnection.upsert({
+        where: {
+          artistId_platform: { artistId: ARTIST_ID, platform: "YOUTUBE" },
+        },
+        update: {
+          accessToken: "public-api",
+          refreshToken: null,
+          tokenExpiry: null,
+          externalId: data.channelId,
+          displayName: data.name,
+          status: "ACTIVE",
+          metadata: {
+            method: "public-api",
+            thumbnailUrl: data.thumbnailUrl,
+            description: data.description,
+          },
+        },
+        create: {
+          artistId: ARTIST_ID,
+          platform: "YOUTUBE",
+          accessToken: "public-api",
+          externalId: data.channelId,
+          displayName: data.name,
+          status: "ACTIVE",
+          metadata: {
+            method: "public-api",
+            thumbnailUrl: data.thumbnailUrl,
+            description: data.description,
+          },
+        },
+      });
+
+      // Save MetricsSnapshot
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const snapshot = await prisma.metricsSnapshot.upsert({
+        where: {
+          artistId_platform_date: {
+            artistId: ARTIST_ID,
+            platform: "YOUTUBE",
+            date: today,
+          },
+        },
+        update: {
+          followers: data.subscribers,
+          totalViews: data.totalViews,
+          platformData: {
+            videoCount: data.videoCount,
+            channelId: data.channelId,
+            method: "public-api",
+          },
+        },
+        create: {
+          artistId: ARTIST_ID,
+          platform: "YOUTUBE",
+          date: today,
+          followers: data.subscribers,
+          totalViews: data.totalViews,
+          platformData: {
+            videoCount: data.videoCount,
+            channelId: data.channelId,
+            method: "public-api",
+          },
+        },
+      });
+
+      // Save content metrics (recent videos)
+      if (data.recentVideos.length > 0) {
+        await prisma.contentMetrics.deleteMany({
+          where: { snapshotId: snapshot.id },
+        });
+        await prisma.contentMetrics.createMany({
+          data: data.recentVideos.map((v) => ({
+            snapshotId: snapshot.id,
+            contentId: v.videoId,
+            contentType: "video",
+            title: v.title,
+            url: `https://www.youtube.com/watch?v=${v.videoId}`,
+            views: v.views,
+            likes: v.likes,
+          })),
+        });
+      }
+
+      revalidatePath("/connections");
+      revalidatePath("/");
+
+      return {
+        success: true,
+        name: data.name,
+        followers: data.subscribers,
+        totalViews: data.totalViews,
+        videoCount: data.videoCount,
+        thumbnailUrl: data.thumbnailUrl,
+      };
+    }
+
+    if (platformKey === "SPOTIFY") {
+      const data = await fetchSpotifyPublicData(profileInput);
+
+      // Upsert PlatformConnection
+      await prisma.platformConnection.upsert({
+        where: {
+          artistId_platform: { artistId: ARTIST_ID, platform: "SPOTIFY" },
+        },
+        update: {
+          accessToken: "public-api",
+          refreshToken: null,
+          tokenExpiry: null,
+          externalId: data.artistId,
+          displayName: data.name,
+          status: "ACTIVE",
+          metadata: {
+            method: "public-api",
+            imageUrl: data.imageUrl,
+            genres: data.genres,
+            popularity: data.popularity,
+          },
+        },
+        create: {
+          artistId: ARTIST_ID,
+          platform: "SPOTIFY",
+          accessToken: "public-api",
+          externalId: data.artistId,
+          displayName: data.name,
+          status: "ACTIVE",
+          metadata: {
+            method: "public-api",
+            imageUrl: data.imageUrl,
+            genres: data.genres,
+            popularity: data.popularity,
+          },
+        },
+      });
+
+      // Save MetricsSnapshot
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const snapshot = await prisma.metricsSnapshot.upsert({
+        where: {
+          artistId_platform_date: {
+            artistId: ARTIST_ID,
+            platform: "SPOTIFY",
+            date: today,
+          },
+        },
+        update: {
+          followers: data.followers,
+          platformData: {
+            popularity: data.popularity,
+            genres: data.genres,
+            artistId: data.artistId,
+            method: "public-api",
+          },
+        },
+        create: {
+          artistId: ARTIST_ID,
+          platform: "SPOTIFY",
+          date: today,
+          followers: data.followers,
+          platformData: {
+            popularity: data.popularity,
+            genres: data.genres,
+            artistId: data.artistId,
+            method: "public-api",
+          },
+        },
+      });
+
+      // Save content metrics (top tracks + albums)
+      const contentData = [
+        ...data.topTracks.map((t, i) => ({
+          snapshotId: snapshot.id,
+          contentId: `track-${i}`,
+          contentType: "track" as const,
+          title: t.name,
+          platformData: {
+            popularity: t.popularity,
+            previewUrl: t.previewUrl,
+          },
+        })),
+        ...data.albums.map((a, i) => ({
+          snapshotId: snapshot.id,
+          contentId: `album-${i}`,
+          contentType: a.type,
+          title: a.name,
+          publishedAt: a.releaseDate ? new Date(a.releaseDate) : undefined,
+          platformData: { totalTracks: a.totalTracks },
+        })),
+      ];
+
+      if (contentData.length > 0) {
+        await prisma.contentMetrics.deleteMany({
+          where: { snapshotId: snapshot.id },
+        });
+        await prisma.contentMetrics.createMany({ data: contentData });
+      }
+
+      revalidatePath("/connections");
+      revalidatePath("/");
+
+      return {
+        success: true,
+        name: data.name,
+        followers: data.followers,
+        popularity: data.popularity,
+        genres: data.genres,
+        imageUrl: data.imageUrl,
+      };
+    }
+
+    return { error: `Plataforma "${platform}" nao suportada para conexao por perfil.` };
+  } catch (err) {
+    console.error(`connectByProfile(${platform}) failed:`, err);
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : "Erro desconhecido ao buscar dados do perfil.",
+    };
+  }
 }
 
 // ── Metrics ──

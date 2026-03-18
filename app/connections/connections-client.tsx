@@ -15,9 +15,12 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
+  Search,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -34,7 +37,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { disconnectPlatform, collectAllMetrics } from "@/lib/actions";
+import {
+  disconnectPlatform,
+  collectAllMetrics,
+  connectByProfile,
+} from "@/lib/actions";
 import { platformNames } from "@/lib/utils";
 
 interface Connection {
@@ -58,6 +65,7 @@ const PLATFORMS = [
     color: "bg-red-500/20",
     iconColor: "text-red-400",
     authUrl: "/api/auth/youtube",
+    placeholder: "Cole a URL do canal, @handle ou ID (ex: @MeuCanal)",
   },
   {
     key: "INSTAGRAM",
@@ -66,6 +74,7 @@ const PLATFORMS = [
     color: "bg-pink-500/20",
     iconColor: "text-pink-400",
     authUrl: "/api/auth/instagram",
+    placeholder: "Nome de usuario do Instagram",
   },
   {
     key: "SPOTIFY",
@@ -74,6 +83,7 @@ const PLATFORMS = [
     color: "bg-green-500/20",
     iconColor: "text-green-400",
     authUrl: "/api/auth/spotify",
+    placeholder: "Cole o link do Spotify ou nome do artista",
   },
 ] as const;
 
@@ -101,10 +111,16 @@ function StatusBadge({ status }: { status: string }) {
         </Badge>
       );
     default:
-      return (
-        <Badge variant="secondary">{status}</Badge>
-      );
+      return <Badge variant="secondary">{status}</Badge>;
   }
+}
+
+interface ProfileResult {
+  success?: boolean;
+  error?: string;
+  name?: string;
+  followers?: number | null;
+  [key: string]: unknown;
 }
 
 export function ConnectionsClient({ connections }: ConnectionsClientProps) {
@@ -112,6 +128,18 @@ export function ConnectionsClient({ connections }: ConnectionsClientProps) {
   const [isCollecting, startCollecting] = useTransition();
   const [disconnectTarget, setDisconnectTarget] = useState<string | null>(null);
   const [isDisconnecting, startDisconnecting] = useTransition();
+
+  // Profile connection state per platform
+  const [profileInputs, setProfileInputs] = useState<Record<string, string>>(
+    {}
+  );
+  const [profileLoading, setProfileLoading] = useState<Record<string, boolean>>(
+    {}
+  );
+  const [profileResults, setProfileResults] = useState<
+    Record<string, ProfileResult>
+  >({});
+  const [showOAuth, setShowOAuth] = useState<Record<string, boolean>>({});
 
   // Handle URL search params for success/error toasts
   useEffect(() => {
@@ -124,7 +152,8 @@ export function ConnectionsClient({ connections }: ConnectionsClientProps) {
     }
     if (error) {
       const parts = error.split("_");
-      const platform = platformNames[parts[0]?.toUpperCase() ?? ""] ?? parts[0];
+      const platform =
+        platformNames[parts[0]?.toUpperCase() ?? ""] ?? parts[0];
       toast.error(`Erro ao conectar ${platform}: ${parts.slice(1).join(" ")}`);
     }
   }, [searchParams]);
@@ -161,16 +190,56 @@ export function ConnectionsClient({ connections }: ConnectionsClientProps) {
           `${platformNames[platform] ?? platform} desconectado com sucesso`
         );
         setDisconnectTarget(null);
-        // Page will revalidate via the server action
+        // Clear profile result for this platform
+        setProfileResults((prev) => {
+          const next = { ...prev };
+          delete next[platform];
+          return next;
+        });
       } catch {
         toast.error("Erro ao desconectar plataforma");
       }
     });
   }
 
-  const connectionMap = new Map(
-    connections.map((c) => [c.platform, c])
-  );
+  async function handleProfileConnect(platformKey: string) {
+    const input = profileInputs[platformKey]?.trim();
+    if (!input) {
+      toast.error("Digite a URL ou nome do perfil.");
+      return;
+    }
+
+    setProfileLoading((prev) => ({ ...prev, [platformKey]: true }));
+    setProfileResults((prev) => {
+      const next = { ...prev };
+      delete next[platformKey];
+      return next;
+    });
+
+    try {
+      const result = await connectByProfile(platformKey, input);
+      setProfileResults((prev) => ({ ...prev, [platformKey]: result }));
+
+      if (result.error) {
+        toast.error(result.error);
+      } else if (result.success) {
+        toast.success(
+          `${result.name ?? platformNames[platformKey]} conectado com sucesso!`
+        );
+      }
+    } catch {
+      toast.error("Erro ao buscar dados do perfil.");
+    } finally {
+      setProfileLoading((prev) => ({ ...prev, [platformKey]: false }));
+    }
+  }
+
+  function formatNumber(n: number | null | undefined): string {
+    if (n == null) return "N/A";
+    return n.toLocaleString("pt-BR");
+  }
+
+  const connectionMap = new Map(connections.map((c) => [c.platform, c]));
 
   return (
     <div className="space-y-6">
@@ -181,9 +250,7 @@ export function ConnectionsClient({ connections }: ConnectionsClientProps) {
             <Link2 className="size-5 text-violet-400" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-zinc-100">
-              Conexoes
-            </h1>
+            <h1 className="text-lg font-semibold text-zinc-100">Conexoes</h1>
             <p className="text-sm text-zinc-400">
               Gerencie suas plataformas conectadas
             </p>
@@ -212,6 +279,8 @@ export function ConnectionsClient({ connections }: ConnectionsClientProps) {
           const connection = connectionMap.get(platform.key);
           const isConnected = !!connection;
           const Icon = platform.icon;
+          const isLoading = profileLoading[platform.key] ?? false;
+          const result = profileResults[platform.key];
 
           return (
             <motion.div
@@ -267,15 +336,139 @@ export function ConnectionsClient({ connections }: ConnectionsClientProps) {
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      <p className="text-sm text-zinc-500">Nao conectado</p>
-                      <a
-                        href={platform.authUrl}
-                        className="inline-flex h-7 w-full items-center justify-center gap-1 rounded-lg bg-violet-600 px-2.5 text-sm font-medium text-white hover:bg-violet-500"
-                      >
-                        <Link2 className="mr-2 size-4" />
-                        Conectar {platform.label}
-                      </a>
+                    <div className="space-y-4">
+                      {/* Profile Connection - Primary */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium text-zinc-300">
+                          <User className="size-3.5" />
+                          Conectar por Perfil
+                        </div>
+                        <p className="text-xs text-zinc-500">
+                          Cole a URL ou digite o nome do perfil para buscar
+                          dados publicos.
+                        </p>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder={platform.placeholder}
+                            value={profileInputs[platform.key] ?? ""}
+                            onChange={(e) =>
+                              setProfileInputs((prev) => ({
+                                ...prev,
+                                [platform.key]: e.target.value,
+                              }))
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !isLoading) {
+                                handleProfileConnect(platform.key);
+                              }
+                            }}
+                            disabled={isLoading}
+                            className="flex-1 border-zinc-700 bg-zinc-800/50 text-zinc-200 placeholder:text-zinc-600"
+                          />
+                          <Button
+                            onClick={() => handleProfileConnect(platform.key)}
+                            disabled={isLoading}
+                            size="sm"
+                            className="shrink-0 bg-violet-600 text-white hover:bg-violet-500"
+                          >
+                            {isLoading ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                              <Search className="size-4" />
+                            )}
+                          </Button>
+                        </div>
+
+                        {/* Result feedback */}
+                        {result && (
+                          <div
+                            className={`rounded-lg p-3 text-xs ${
+                              result.error
+                                ? "border border-red-500/20 bg-red-500/10 text-red-300"
+                                : "border border-green-500/20 bg-green-500/10 text-green-300"
+                            }`}
+                          >
+                            {result.error ? (
+                              <div className="flex items-start gap-2">
+                                <XCircle className="mt-0.5 size-3.5 shrink-0" />
+                                <span>{result.error}</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-start gap-2">
+                                <CheckCircle2 className="mt-0.5 size-3.5 shrink-0" />
+                                <div>
+                                  <p className="font-medium">
+                                    {result.name} conectado!
+                                  </p>
+                                  {result.followers != null && (
+                                    <p className="mt-0.5 text-green-400/80">
+                                      {formatNumber(
+                                        result.followers as number | null
+                                      )}{" "}
+                                      seguidores
+                                    </p>
+                                  )}
+                                  {result.totalViews != null && (
+                                    <p className="text-green-400/80">
+                                      {formatNumber(
+                                        result.totalViews as number | null
+                                      )}{" "}
+                                      visualizacoes
+                                    </p>
+                                  )}
+                                  {result.popularity != null && (
+                                    <p className="text-green-400/80">
+                                      Popularidade:{" "}
+                                      {result.popularity as number}/100
+                                    </p>
+                                  )}
+                                  {Array.isArray(result.genres) &&
+                                    result.genres.length > 0 && (
+                                      <p className="text-green-400/80">
+                                        Generos:{" "}
+                                        {(result.genres as string[]).join(", ")}
+                                      </p>
+                                    )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <Separator className="bg-zinc-800" />
+
+                      {/* OAuth Connection - Secondary */}
+                      <div className="space-y-2">
+                        <button
+                          onClick={() =>
+                            setShowOAuth((prev) => ({
+                              ...prev,
+                              [platform.key]: !prev[platform.key],
+                            }))
+                          }
+                          className="flex w-full items-center justify-between text-xs text-zinc-500 hover:text-zinc-400"
+                        >
+                          <span>Conexao Avancada (OAuth)</span>
+                          <span>{showOAuth[platform.key] ? "-" : "+"}</span>
+                        </button>
+
+                        {showOAuth[platform.key] && (
+                          <div className="space-y-2">
+                            <p className="text-xs text-zinc-600">
+                              Acesso completo via autorizacao OAuth. Necessario
+                              para metricas detalhadas e dados privados.
+                            </p>
+                            <a
+                              href={platform.authUrl}
+                              className="inline-flex h-7 w-full items-center justify-center gap-1 rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 text-sm font-medium text-zinc-300 hover:bg-zinc-700 hover:text-zinc-200"
+                            >
+                              <Link2 className="mr-2 size-4" />
+                              Conectar via OAuth
+                            </a>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -307,7 +500,9 @@ export function ConnectionsClient({ connections }: ConnectionsClientProps) {
             </Button>
             <Button
               variant="destructive"
-              onClick={() => disconnectTarget && handleDisconnect(disconnectTarget)}
+              onClick={() =>
+                disconnectTarget && handleDisconnect(disconnectTarget)
+              }
               disabled={isDisconnecting}
             >
               {isDisconnecting ? (
