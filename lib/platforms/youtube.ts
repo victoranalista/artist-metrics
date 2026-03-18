@@ -78,7 +78,7 @@ async function fetchRecentVideos(
     .join(",");
 
   const statsRes = await fetch(
-    `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds}`,
+    `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet,contentDetails&id=${videoIds}`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
   const statsData = await statsRes.json();
@@ -92,30 +92,48 @@ async function fetchRecentVideos(
       id: string;
       snippet: {
         title: string;
-        thumbnails?: { medium?: { url: string } };
+        description?: string;
+        thumbnails?: { medium?: { url: string }; high?: { url: string } };
         publishedAt: string;
+        tags?: string[];
+        categoryId?: string;
       };
       statistics: {
         viewCount?: string;
         likeCount?: string;
         commentCount?: string;
+        favoriteCount?: string;
       };
-    }): ContentItem => ({
-      contentId: video.id,
-      contentType: "video",
-      title: video.snippet.title,
-      thumbnailUrl: video.snippet.thumbnails?.medium?.url ?? null,
-      publishedAt: new Date(video.snippet.publishedAt),
-      url: `https://www.youtube.com/watch?v=${video.id}`,
-      views: video.statistics.viewCount ? parseInt(video.statistics.viewCount, 10) : null,
-      likes: video.statistics.likeCount ? parseInt(video.statistics.likeCount, 10) : null,
-      comments: video.statistics.commentCount
-        ? parseInt(video.statistics.commentCount, 10)
-        : null,
-      shares: null,
-      saves: null,
-      platformData: { statistics: video.statistics },
-    })
+      contentDetails?: {
+        duration?: string;
+        definition?: string;
+      };
+    }): ContentItem => {
+      const views = video.statistics.viewCount ? parseInt(video.statistics.viewCount, 10) : null;
+      const likes = video.statistics.likeCount ? parseInt(video.statistics.likeCount, 10) : null;
+      const comments = video.statistics.commentCount ? parseInt(video.statistics.commentCount, 10) : null;
+
+      return {
+        contentId: video.id,
+        contentType: "video",
+        title: video.snippet.title,
+        thumbnailUrl: video.snippet.thumbnails?.high?.url ?? video.snippet.thumbnails?.medium?.url ?? null,
+        publishedAt: new Date(video.snippet.publishedAt),
+        url: `https://www.youtube.com/watch?v=${video.id}`,
+        views,
+        likes,
+        comments,
+        shares: null,
+        saves: null,
+        platformData: {
+          duracao: video.contentDetails?.duration ?? null,
+          definicao: video.contentDetails?.definition ?? null,
+          tags: video.snippet.tags?.slice(0, 10) ?? [],
+          descricaoCurta: video.snippet.description?.substring(0, 200) ?? null,
+          taxaEngajamento: views && views > 0 ? ((likes ?? 0) + (comments ?? 0)) / views : null,
+        },
+      };
+    }
   );
 }
 
@@ -312,31 +330,80 @@ export async function collectYouTubeMetrics(
     const demoRaw = await fetchAnalyticsDemographics(accessToken);
     const audience = parseDemographics(demoRaw);
 
-    // Calculate engagement rate from recent videos
+    // Calcular métricas agregadas dos vídeos
+    const totalVideoLikes = content.reduce((sum, item) => sum + (item.likes ?? 0), 0);
+    const totalVideoComments = content.reduce((sum, item) => sum + (item.comments ?? 0), 0);
+    const totalVideoViews = content.reduce((sum, item) => sum + (item.views ?? 0), 0);
+
+    // Taxa de engajamento: (likes + comments) / views dos vídeos recentes
     let engagementRate: number | null = null;
-    if (content.length > 0 && subscribers && subscribers > 0) {
-      const totalEngagement = content.reduce((sum, item) => {
-        return sum + (item.likes ?? 0) + (item.comments ?? 0);
-      }, 0);
-      engagementRate = totalEngagement / (content.length * subscribers);
+    if (totalVideoViews > 0) {
+      engagementRate = (totalVideoLikes + totalVideoComments) / totalVideoViews;
+    }
+
+    // Média de views por vídeo
+    const avgViewsPerVideo = content.length > 0
+      ? Math.round(totalVideoViews / content.length)
+      : null;
+
+    // Melhor vídeo
+    const bestVideo = content.length > 0
+      ? content.reduce((best, item) =>
+          (item.views ?? 0) > (best.views ?? 0) ? item : best
+        )
+      : null;
+
+    // Frequência de upload (dias entre vídeos)
+    let uploadFrequencyDays: number | null = null;
+    if (content.length >= 2) {
+      const dates = content
+        .filter((c) => c.publishedAt)
+        .map((c) => c.publishedAt!.getTime())
+        .sort((a, b) => b - a);
+      if (dates.length >= 2) {
+        const totalDays = (dates[0] - dates[dates.length - 1]) / (1000 * 60 * 60 * 24);
+        uploadFrequencyDays = Math.round(totalDays / (dates.length - 1));
+      }
     }
 
     return {
       followers: subscribers,
       totalViews,
-      totalLikes: analytics?.periodo28dias.curtidas ?? null,
-      totalComments: analytics?.periodo28dias.comentarios ?? null,
+      totalLikes: analytics?.periodo28dias?.curtidas ?? (totalVideoLikes || null),
+      totalComments: analytics?.periodo28dias?.comentarios ?? (totalVideoComments || null),
       totalShares: analytics?.periodo28dias.compartilhamentos ?? null,
       engagementRate,
       platformData: {
-        channelId: channel.id,
-        channelTitle: channel.snippet?.title,
-        videoCount,
-        hiddenSubscriberCount: stats.hiddenSubscriberCount,
-        // Métricas do YouTube Analytics (últimos 28 dias)
-        ...(analytics ? {
-          analytics: analytics.periodo28dias,
+        // Dados do canal
+        canalId: channel.id,
+        canalNome: channel.snippet?.title,
+        canalDescricao: channel.snippet?.description?.substring(0, 500),
+        canalImagem: channel.snippet?.thumbnails?.high?.url ?? channel.snippet?.thumbnails?.default?.url,
+        canalCriado: channel.snippet?.publishedAt,
+        totalVideos: videoCount,
+        totalInscritos: subscribers,
+        totalVisualizacoes: totalViews,
+
+        // Métricas calculadas dos vídeos recentes
+        videosAnalisados: content.length,
+        mediaViewsPorVideo: avgViewsPerVideo,
+        totalCurtidasVideos: totalVideoLikes,
+        totalComentariosVideos: totalVideoComments,
+        taxaEngajamento: engagementRate ? Math.round(engagementRate * 10000) / 100 : null,
+        frequenciaUploadDias: uploadFrequencyDays,
+
+        // Melhor vídeo
+        ...(bestVideo ? {
+          melhorVideo: {
+            titulo: bestVideo.title,
+            views: bestVideo.views,
+            likes: bestVideo.likes,
+            url: bestVideo.url,
+          },
         } : {}),
+
+        // YouTube Analytics (últimos 28 dias)
+        ...(analytics ? { analytics: analytics.periodo28dias } : {}),
       },
       content,
       audience,
