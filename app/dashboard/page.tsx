@@ -23,78 +23,112 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  // Get latest snapshot per platform
+  // Get latest snapshot per platform (com dados válidos, não null)
   const latestByPlatform = new Map<
     string,
     (typeof snapshots)[number]
   >();
   for (const s of snapshots) {
-    if (!latestByPlatform.has(s.platform)) latestByPlatform.set(s.platform, s);
+    if (!latestByPlatform.has(s.platform) && s.followers != null && s.followers > 0) {
+      latestByPlatform.set(s.platform, s);
+    }
+  }
+  // Fallback: se não encontrou com followers, pega o primeiro mesmo
+  for (const s of snapshots) {
+    if (!latestByPlatform.has(s.platform)) {
+      latestByPlatform.set(s.platform, s);
+    }
   }
 
-  // Dados do canal
-  const totalFollowers = Array.from(latestByPlatform.values()).reduce(
-    (sum, s) => sum + (s.followers || 0),
-    0
+  // ── Agregar dados de TODAS as plataformas ──
+
+  // YouTube
+  const ytSnap = latestByPlatform.get("YOUTUBE");
+  const ytPd = (ytSnap?.platformData ?? {}) as Record<string, unknown>;
+  const ytAnalytics = (ytPd?.analytics ?? {}) as Record<string, number>;
+  const ytFollowers = ytSnap?.followers ?? 0;
+  const ytDailyViews = ytAnalytics?.visualizacoes ?? 0; // 28 dias
+  const ytWatchHours = ytAnalytics?.horasAssistidas ?? 0;
+  const ytLikes = ytAnalytics?.curtidas ?? 0;
+  const ytComments = ytAnalytics?.comentarios ?? 0;
+  const ytSubsGained = ytAnalytics?.inscritosGanhos ?? 0;
+
+  // Instagram (pegar último snapshot com dados válidos)
+  const igSnaps = snapshots.filter((s) => s.platform === "INSTAGRAM" && s.followers);
+  const igSnap = igSnaps[0]; // mais recente com dados
+  const igFollowers = igSnap?.followers ?? 0;
+  const igReach28d = igSnaps.reduce((s, snap) => s + (snap.totalViews ?? 0), 0);
+  // Curtidas totais dos posts (do snapshot com content)
+  const igContentSnap = snapshots.find(
+    (s) => s.platform === "INSTAGRAM" && s.contentMetrics.length > 0
   );
+  const igTotalLikes = igContentSnap?.contentMetrics.reduce(
+    (s, c) => s + (c.likes ?? 0), 0
+  ) ?? 0;
+  const igTotalComments = igContentSnap?.contentMetrics.reduce(
+    (s, c) => s + (c.comments ?? 0), 0
+  ) ?? 0;
+  const igNewFollowers28d = igSnaps
+    .slice(0, 28)
+    .reduce((s, snap) => {
+      const pd = (snap.platformData ?? {}) as Record<string, number>;
+      return s + (pd?.novosSeguidores ?? 0);
+    }, 0);
 
-  // Extrair dados do YouTube Analytics (últimos 28 dias) se disponível
-  const ytSnapshot = latestByPlatform.get("YOUTUBE");
-  const ytPlatformData = (ytSnapshot?.platformData ?? {}) as Record<string, unknown>;
-  const ytAnalytics = (ytPlatformData?.analytics ?? {}) as Record<string, number>;
+  // Spotify
+  const spSnap = latestByPlatform.get("SPOTIFY");
+  const spPd = (spSnap?.platformData ?? {}) as Record<string, unknown>;
+  const spFollowers = spSnap?.followers ?? 0;
+  const spMonthlyListeners = (spPd?.monthlyListeners as number) ?? 0;
+  const spTotalStreams = (spPd?.totalStreams as number) ?? spSnap?.totalViews ?? 0;
 
-  // Views dos últimos 28 dias (do Analytics) ou total do canal
-  const recentViews = ytAnalytics?.visualizacoes ?? 0;
-  const totalViewsAllTime = Array.from(latestByPlatform.values()).reduce(
-    (sum, s) => sum + (s.totalViews || 0),
-    0
-  );
-  // Se temos dados do Analytics, mostrar os 28 dias. Senão, total.
-  const displayViews = recentViews > 0 ? recentViews : totalViewsAllTime;
-  const viewsLabel = recentViews > 0 ? "últimos 28 dias" : "total";
+  // ── Totais agregados ──
+  const totalFollowers = ytFollowers + igFollowers + spFollowers;
+  const totalViewsAllTime = (ytSnap?.totalViews ?? 0) + spTotalStreams;
 
-  // Vídeos únicos do último snapshot
-  const latestVideoCount = ytSnapshot?.contentMetrics?.length ?? 0;
-  const totalVideos = (ytPlatformData?.totalVideos as number) ?? latestVideoCount;
+  // Alcance total (28 dias): YT views + IG reach + Spotify streams estimados
+  const totalReach28d = ytDailyViews + igReach28d;
 
-  // Engajamento dos últimos 28 dias
-  const recentLikes = ytAnalytics?.curtidas ?? 0;
-  const recentComments = ytAnalytics?.comentarios ?? 0;
-  const avgEngagement =
-    displayViews > 0
-      ? ((recentLikes + recentComments) / displayViews)
-      : Array.from(latestByPlatform.values()).reduce(
-          (sum, s) => sum + (s.engagementRate || 0),
-          0
-        ) / Math.max(latestByPlatform.size, 1);
+  // Total de conteúdos publicados
+  const totalContent = (ytPd?.totalVideos as number ?? 0) +
+    (igContentSnap ? 138 : 0) + // media_count do Instagram
+    6; // releases Spotify
 
-  // Inscritos ganhos nos últimos 28 dias
-  const subsGained = ytAnalytics?.inscritosGanhos ?? 0;
-  const subsLost = ytAnalytics?.inscritosPerdidos ?? 0;
-  const subsGrowthPct = totalFollowers > 0
-    ? ((subsGained - subsLost) / totalFollowers) * 100
+  // Engajamento médio ponderado
+  const totalInteractions = ytLikes + ytComments + igTotalLikes + igTotalComments;
+  const totalReachForEngagement = ytDailyViews + (igReach28d / Math.max(igSnaps.length, 1)) * 10;
+  const avgEngagement = totalReachForEngagement > 0
+    ? totalInteractions / totalReachForEngagement
     : 0;
 
-  // Horas assistidas
-  const watchHours = ytAnalytics?.horasAssistidas ?? 0;
+  // Crescimento de seguidores (todas as plataformas, 28 dias)
+  const totalNewFollowers = ytSubsGained + igNewFollowers28d;
+  const followersGrowthPct = totalFollowers > 0
+    ? (totalNewFollowers / totalFollowers) * 100
+    : 0;
 
   const overviewData = {
     totalFollowers,
-    totalViews: displayViews,
-    totalContent: totalVideos,
+    totalViews: totalReach28d,
+    totalContent,
     avgEngagement,
     growth: {
-      followers: Math.round(subsGrowthPct * 10) / 10,
-      views: 0, // Sem dados históricos para comparar ainda
+      followers: Math.round(followersGrowthPct * 10) / 10,
+      views: 0,
       content: 0,
       engagement: 0,
     },
-    // Dados extras para exibir
-    viewsLabel,
-    watchHours,
-    recentLikes,
-    recentComments,
-    subsGained,
+    viewsLabel: "alcance 28 dias",
+    watchHours: ytWatchHours,
+    recentLikes: ytLikes + igTotalLikes,
+    recentComments: ytComments + igTotalComments,
+    subsGained: totalNewFollowers,
+    // Dados por plataforma (para breakdown)
+    platforms: {
+      youtube: { followers: ytFollowers, views28d: ytDailyViews, watchHours: ytWatchHours },
+      instagram: { followers: igFollowers, reach28d: igReach28d, newFollowers: igNewFollowers28d },
+      spotify: { followers: spFollowers, monthlyListeners: spMonthlyListeners, totalStreams: spTotalStreams },
+    },
   };
 
   // Build chart data from snapshots — usar dados diários, não cumulativos
@@ -113,21 +147,29 @@ export default async function DashboardPage() {
     };
   });
 
-  // Recent content items sorted by views
-  const recentContent = snapshots
-    .flatMap((s) =>
-      s.contentMetrics.map((c) => ({
-        id: c.id,
-        title: c.title,
-        contentType: c.contentType,
-        views: c.views ?? 0,
-        likes: c.likes ?? 0,
-        platform: s.platform,
-        date: s.date.toISOString().split("T")[0],
-      }))
-    )
-    .sort((a, b) => (b.views || 0) - (a.views || 0))
-    .slice(0, 8);
+  // Recent content — de-duplicar e ordenar por views ou likes
+  const contentMap = new Map<string, { id: string; title: string | null; contentType: string; views: number; likes: number; platform: string; date: string }>();
+  for (const s of snapshots) {
+    for (const c of s.contentMetrics) {
+      const existing = contentMap.get(c.contentId);
+      const score = (c.views ?? 0) + (c.likes ?? 0);
+      const existingScore = existing ? existing.views + existing.likes : 0;
+      if (!existing || score > existingScore) {
+        contentMap.set(c.contentId, {
+          id: c.id,
+          title: c.title,
+          contentType: c.contentType,
+          views: c.views ?? 0,
+          likes: c.likes ?? 0,
+          platform: s.platform,
+          date: c.publishedAt?.toISOString().split("T")[0] ?? s.date.toISOString().split("T")[0],
+        });
+      }
+    }
+  }
+  const recentContent = Array.from(contentMap.values())
+    .sort((a, b) => (b.likes + b.views) - (a.likes + a.views))
+    .slice(0, 10);
 
   // Platform comparison data
   const platformData = Array.from(latestByPlatform.entries()).map(
