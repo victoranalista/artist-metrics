@@ -32,15 +32,15 @@ interface GrowthChartProps {
 const chartConfig = {
   YOUTUBE: {
     label: "YouTube",
-    color: "hsl(0 0% 63%)",
+    color: "hsl(215 70% 60%)",
   },
   INSTAGRAM: {
     label: "Instagram",
-    color: "hsl(0 0% 45%)",
+    color: "hsl(30 60% 65%)",
   },
   SPOTIFY: {
     label: "Spotify",
-    color: "hsl(0 0% 83%)",
+    color: "hsl(160 45% 55%)",
   },
 } satisfies ChartConfig;
 

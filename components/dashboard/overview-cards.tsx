@@ -11,7 +11,8 @@ import { AreaChart, Area, ResponsiveContainer } from "recharts";
 
 interface MiniSparklineProps {
   value: number;
-  trend: number; // positive = upward, negative = downward
+  trend: number;
+  color?: string;
 }
 
 function generateSparklineData(value: number, trend: number): { v: number }[] {
@@ -34,25 +35,34 @@ function generateSparklineData(value: number, trend: number): { v: number }[] {
   return data;
 }
 
-function MiniSparkline({ value, trend }: MiniSparklineProps) {
+const CARD_COLORS = [
+  "hsl(215, 70%, 60%)",  // azul
+  "hsl(30, 60%, 65%)",   // bege/dourado
+  "hsl(160, 45%, 55%)",  // verde suave
+  "hsl(280, 40%, 60%)",  // lilás
+];
+
+function MiniSparkline({ value, trend, color }: MiniSparklineProps) {
   const data = useMemo(() => generateSparklineData(value, trend), [value, trend]);
+  const c = color || CARD_COLORS[0];
+  const id = `spark-${value}-${trend}`;
 
   return (
     <div className="h-8 w-20">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
           <defs>
-            <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgb(161 161 170)" stopOpacity={0.2} />
-              <stop offset="100%" stopColor="rgb(161 161 170)" stopOpacity={0} />
+            <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={c} stopOpacity={0.3} />
+              <stop offset="100%" stopColor={c} stopOpacity={0} />
             </linearGradient>
           </defs>
           <Area
             type="monotone"
             dataKey="v"
-            stroke="rgb(161 161 170)"
+            stroke={c}
             strokeWidth={1.5}
-            fill="url(#sparkFill)"
+            fill={`url(#${id})`}
             isAnimationActive={false}
           />
         </AreaChart>
@@ -156,7 +166,7 @@ export function OverviewCards({ data }: OverviewCardsProps) {
                   <p className="text-2xl font-bold tracking-tight text-white">
                     {card.getValue(data)}
                   </p>
-                  <MiniSparkline value={rawValue} trend={growth} />
+                  <MiniSparkline value={rawValue} trend={growth} color={CARD_COLORS[cards.indexOf(card)]} />
                 </div>
 
                 {/* Subtext contextual ou growth */}

@@ -409,6 +409,23 @@ const collectors: Record<
 };
 
 export async function collectAllMetrics() {
+  // Buscar dados históricos primeiro (YouTube Analytics + Instagram Insights)
+  const { fetchYouTubeHistory, fetchInstagramHistory } = await import("@/lib/platforms/fetch-history");
+  try {
+    const [ytHistory, igHistory] = await Promise.allSettled([
+      fetchYouTubeHistory(90),
+      fetchInstagramHistory(),
+    ]);
+    if (ytHistory.status === "fulfilled" && ytHistory.value.saved > 0) {
+      console.log(`YouTube: ${ytHistory.value.saved} dias de histórico atualizados`);
+    }
+    if (igHistory.status === "fulfilled" && igHistory.value.saved > 0) {
+      console.log(`Instagram: ${igHistory.value.saved} dias de histórico atualizados`);
+    }
+  } catch (e) {
+    console.error("Erro ao buscar histórico:", e);
+  }
+
   const connections = await prisma.platformConnection.findMany({
     where: { artistId: ARTIST_ID, status: "ACTIVE" },
   });
