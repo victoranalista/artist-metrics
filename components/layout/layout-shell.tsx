@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, createContext, useContext } from "react";
+import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
@@ -20,6 +21,11 @@ export const useSidebarState = () => useContext(SidebarContext);
 export function LayoutShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const pathname = usePathname();
+
+  // Chat pages get full-screen treatment on mobile (like ChatGPT)
+  const isChatPage = pathname === "/chat" || pathname?.startsWith("/chat/");
+  const isFullscreenMobile = isMobile && isChatPage;
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -30,6 +36,17 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   const mainPaddingLeft = isMobile ? 0 : collapsed ? 64 : 256;
+
+  // Full-screen mobile chat: no header, no nav, no padding
+  if (isFullscreenMobile) {
+    return (
+      <SidebarContext.Provider value={{ collapsed, setCollapsed }}>
+        <div className="fixed inset-0 bg-zinc-950">
+          {children}
+        </div>
+      </SidebarContext.Provider>
+    );
+  }
 
   return (
     <SidebarContext.Provider value={{ collapsed, setCollapsed }}>
