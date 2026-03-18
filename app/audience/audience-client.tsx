@@ -1,254 +1,198 @@
 "use client";
 
-import { useState } from "react";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { Users, MapPin, Globe, BarChart3, Radio } from "lucide-react";
+  Users,
+  TrendingUp,
+  Eye,
+  Heart,
+  MessageCircle,
+  Clock,
+  FileText,
+  Globe,
+  Radio,
+  BarChart3,
+  ExternalLink,
+} from "lucide-react";
 import {
   Card,
   CardHeader,
   CardTitle,
   CardContent,
 } from "@/components/ui/card";
-import { platformColors, platformNames } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import {
+  MotionSection,
+  MotionStagger,
+  MotionItem,
+} from "@/components/ui/motion-section";
+import { formatNumber, platformColors, platformNames } from "@/lib/utils";
 
-interface AudienceInfo {
-  ageRanges: Record<string, number> | null;
-  genderSplit: Record<string, number> | null;
-  topCountries: Record<string, number> | null;
-  topCities: Record<string, number> | null;
-  trafficSources: Record<string, number> | null;
+// ── Types ──
+
+interface EngagementData {
+  avgLikes: number;
+  avgComments: number;
+  avgViews: number;
+  engagementRate: number;
+  contentCount: number;
+}
+
+interface TopContentItem {
+  title: string;
+  platform: string;
+  likes: number;
+  views: number;
+  comments: number;
+  date: string | null;
+  url: string | null;
+  contentType: string;
 }
 
 interface AudienceClientProps {
-  platforms: string[];
-  audienceData: Record<string, AudienceInfo>;
   hasConnections: boolean;
+  totalFollowers: number;
+  totalGrowth28d: number;
+  totalReach28d: number;
+  overallEngagementRate: number;
+  hoursWatched: number;
+  totalContentCount: number;
+  platformFollowers: Record<string, number>;
+  topCountries: Record<string, number> | null;
+  trafficSources: Record<string, number> | null;
+  engagementByPlatform: Record<string, EngagementData>;
+  topContent: TopContentItem[];
 }
 
-const GENDER_COLORS: Record<string, string> = {
-  male: "#a1a1aa",
-  female: "#71717a",
-  masculino: "#a1a1aa",
-  feminino: "#71717a",
-  other: "#52525b",
-  outro: "#52525b",
-  unknown: "#3f3f46",
-};
+// ── Labels ──
 
-const GENDER_LABELS: Record<string, string> = {
-  male: "Masculino",
-  female: "Feminino",
-  masculino: "Masculino",
-  feminino: "Feminino",
-  other: "Outro",
-  outro: "Outro",
-  unknown: "Desconhecido",
+const COUNTRY_LABELS: Record<string, string> = {
+  BR: "Brasil",
+  US: "Estados Unidos",
+  PT: "Portugal",
+  MZ: "Mocambique",
+  AO: "Angola",
+  CV: "Cabo Verde",
+  GW: "Guine-Bissau",
+  TL: "Timor-Leste",
+  FR: "Franca",
+  ES: "Espanha",
+  GB: "Reino Unido",
+  DE: "Alemanha",
+  IT: "Italia",
+  JP: "Japao",
+  MX: "Mexico",
+  AR: "Argentina",
+  CO: "Colombia",
+  CL: "Chile",
+  PE: "Peru",
+  IN: "India",
 };
 
 const TRAFFIC_SOURCE_LABELS: Record<string, string> = {
+  SHORTS: "YouTube Shorts",
+  YT_SEARCH: "Busca no YouTube",
+  SUBSCRIBER: "Inscritos",
+  YT_CHANNEL: "Pagina do Canal",
+  EXT_URL: "Links Externos",
+  PLAYLIST: "Playlists",
   SEARCH: "Pesquisa",
   SUGGESTED: "Sugeridos",
-  BROWSE_FEATURES: "Navegação",
-  EXT_URL: "URL Externa",
+  BROWSE_FEATURES: "Navegacao",
   EXTERNAL: "Externo",
-  NOTIFICATION: "Notificação",
-  PLAYLIST: "Playlist",
-  SHORTS: "Shorts",
-  RELATED_VIDEO: "Vídeos Relacionados",
-  YT_SEARCH: "Pesquisa YouTube",
-  SUBSCRIBER: "Inscritos",
-  YT_CHANNEL: "Página do Canal",
+  NOTIFICATION: "Notificacoes",
+  RELATED_VIDEO: "Videos Relacionados",
   ADVERTISING: "Publicidade",
   NO_LINK_EMBEDDED: "Incorporado",
   NO_LINK_OTHER: "Outro",
   END_SCREEN: "Tela Final",
-  ANNOTATION: "Anotação",
-  CAMPAIGN_CARD: "Cartão de Campanha",
+  ANNOTATION: "Anotacao",
+  CAMPAIGN_CARD: "Cartao de Campanha",
   HASHTAGS: "Hashtags",
   LIVE_REDIRECT: "Redirect ao Vivo",
   PROMOTED: "Promovido",
-  YT_OTHER_PAGE: "Outra Página YT",
-  YT_PLAYLIST_PAGE: "Página Playlist",
+  YT_OTHER_PAGE: "Outra Pagina YT",
+  YT_PLAYLIST_PAGE: "Pagina Playlist",
   VIDEO_REMIXES: "Remixes",
 };
 
-function ChartTooltip({
-  active,
-  payload,
-  suffix = "",
-}: {
-  active?: boolean;
-  payload?: Array<{ name: string; value: number }>;
-  suffix?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  const item = payload[0];
-  return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 shadow-lg">
-      <p className="text-xs text-zinc-400">
-        {item.name}:{" "}
-        <span className="font-medium text-white">
-          {typeof item.value === "number" ? item.value.toLocaleString("pt-BR") : item.value}
-          {suffix}
-        </span>
-      </p>
-    </div>
-  );
-}
+const CONTENT_TYPE_LABELS: Record<string, string> = {
+  VIDEO: "Video",
+  video: "Video",
+  SHORT: "Short",
+  short: "Short",
+  REEL: "Reel",
+  reel: "Reel",
+  POST: "Post",
+  post: "Post",
+  TRACK: "Musica",
+  track: "Musica",
+  ALBUM: "Album",
+  album: "Album",
+};
 
-function GenderChart({ genderSplit }: { genderSplit: Record<string, number> }) {
-  const data = Object.entries(genderSplit).map(([key, value]) => ({
-    name: GENDER_LABELS[key.toLowerCase()] || key,
-    value,
-    color: GENDER_COLORS[key.toLowerCase()] || "#52525b",
-  }));
+// ── Helpers ──
 
-  const total = data.reduce((sum, d) => sum + d.value, 0);
-
-  return (
-    <Card className="border-zinc-800 bg-zinc-900">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-300">
-          <Users className="size-4 text-zinc-500" />
-          Distribuição por Gênero
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center gap-6">
-          <div className="h-[160px] w-[160px] shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={72}
-                  paddingAngle={3}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {data.map((entry, index) => (
-                    <Cell key={index} fill={entry.color} />
-                  ))}
-                </Pie>
-                <RechartsTooltip
-                  content={({ active, payload }) => (
-                    <ChartTooltip active={active} payload={payload as Array<{ name: string; value: number }>} suffix="%" />
-                  )}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="space-y-2">
-            {data.map((entry) => (
-              <div key={entry.name} className="flex items-center gap-2">
-                <div
-                  className="size-2.5 rounded-full"
-                  style={{ backgroundColor: entry.color }}
-                />
-                <span className="text-sm text-zinc-400">{entry.name}</span>
-                <span className="ml-auto text-sm font-medium text-white">
-                  {total > 0 ? `${Math.round((entry.value / total) * 100)}%` : `${entry.value}%`}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function AgeBarChart({ ageRanges }: { ageRanges: Record<string, number> }) {
-  const data = Object.entries(ageRanges)
-    .map(([range, value]) => ({ range, value }))
-    .sort((a, b) => {
-      const numA = parseInt(a.range);
-      const numB = parseInt(b.range);
-      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-      return a.range.localeCompare(b.range);
+function formatDate(iso: string | null): string {
+  if (!iso) return "\u2014";
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "\u2014";
+    return d.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
     });
+  } catch {
+    return "\u2014";
+  }
+}
 
+// ── Stat Card ──
+
+function StatCard({
+  icon,
+  label,
+  value,
+  detail,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  detail?: string;
+}) {
   return (
     <Card className="border-zinc-800 bg-zinc-900">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-300">
-          <BarChart3 className="size-4 text-zinc-500" />
-          Faixa Etária
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[200px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={data}
-              layout="vertical"
-              margin={{ top: 0, right: 16, left: 4, bottom: 0 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#27272a"
-                horizontal={false}
-              />
-              <XAxis
-                type="number"
-                tick={{ fill: "#71717a", fontSize: 11 }}
-                axisLine={{ stroke: "#27272a" }}
-                tickLine={false}
-                tickFormatter={(v: number) => `${v}%`}
-              />
-              <YAxis
-                type="category"
-                dataKey="range"
-                tick={{ fill: "#a1a1aa", fontSize: 11 }}
-                axisLine={{ stroke: "#27272a" }}
-                tickLine={false}
-                width={56}
-              />
-              <RechartsTooltip
-                content={({ active, payload }) => (
-                  <ChartTooltip active={active} payload={payload as Array<{ name: string; value: number }>} suffix="%" />
-                )}
-              />
-              <Bar
-                dataKey="value"
-                fill="#a1a1aa"
-                radius={[0, 4, 4, 0]}
-                barSize={18}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+      <CardContent className="pt-0">
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-zinc-800">
+            {icon}
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-zinc-500">{label}</p>
+            <p className="text-lg font-bold text-white">{value}</p>
+            {detail && (
+              <p className="text-xs text-zinc-500">{detail}</p>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-function HorizontalBarSection({
+// ── Horizontal Bar Section ──
+
+function HorizontalBars({
   title,
   icon,
   data,
   labelMap,
-  suffix,
   formatValue,
 }: {
   title: string;
   icon: React.ReactNode;
   data: Record<string, number>;
   labelMap?: Record<string, string>;
-  suffix?: string;
   formatValue?: (v: number) => string;
 }) {
   const sorted = Object.entries(data)
@@ -270,7 +214,7 @@ function HorizontalBarSection({
             const label = labelMap?.[key] || key;
             const displayValue = formatValue
               ? formatValue(value)
-              : `${value.toLocaleString("pt-BR")}${suffix || ""}`;
+              : value.toLocaleString("pt-BR");
             return (
               <div key={key} className="space-y-1">
                 <div className="flex items-center justify-between text-sm">
@@ -279,7 +223,7 @@ function HorizontalBarSection({
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
                   <div
-                    className="h-full rounded-full bg-zinc-600 transition-all duration-500"
+                    className="h-full rounded-full bg-zinc-500 transition-all duration-500"
                     style={{ width: `${(value / maxValue) * 100}%` }}
                   />
                 </div>
@@ -287,7 +231,7 @@ function HorizontalBarSection({
             );
           })}
           {sorted.length === 0 && (
-            <p className="text-sm text-zinc-600">Sem dados disponíveis</p>
+            <p className="text-sm text-zinc-600">Sem dados disponiveis</p>
           )}
         </div>
       </CardContent>
@@ -295,136 +239,329 @@ function HorizontalBarSection({
   );
 }
 
+// ── Empty State ──
+
 function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 bg-zinc-900/50 py-16 text-center">
       <Users className="mb-4 size-10 text-zinc-700" />
       <h3 className="text-base font-medium text-zinc-400">
-        Sem dados de audiência
+        Sem dados de audiencia
       </h3>
       <p className="mt-1 max-w-sm text-sm text-zinc-600">{message}</p>
     </div>
   );
 }
 
+// ── Main Component ──
+
 export function AudienceClient({
-  platforms,
-  audienceData,
   hasConnections,
+  totalFollowers,
+  totalGrowth28d,
+  totalReach28d,
+  overallEngagementRate,
+  hoursWatched,
+  totalContentCount,
+  platformFollowers,
+  topCountries,
+  trafficSources,
+  engagementByPlatform,
+  topContent,
 }: AudienceClientProps) {
-  const defaultPlatform = platforms.length > 0 ? platforms[0] : "";
-  const [activePlatform, setActivePlatform] = useState(defaultPlatform);
-
-  if (!hasConnections || platforms.length === 0) {
+  if (!hasConnections) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Audiência</h1>
-          <p className="mt-1 text-sm text-zinc-400">
-            Dados demográficos e distribuição do seu público por plataforma
-          </p>
-        </div>
-        <EmptyState message="Conecte uma plataforma e colete métricas para ver dados de audiência" />
-      </div>
+      <EmptyState message="Conecte uma plataforma e colete metricas para ver dados de audiencia" />
     );
   }
 
-  const currentData = audienceData[activePlatform] ?? null;
+  const platformOrder = ["INSTAGRAM", "YOUTUBE", "SPOTIFY"] as const;
+  const maxFollowers = Math.max(...Object.values(platformFollowers), 1);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Audiência</h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Dados demográficos e distribuição do seu público por plataforma
-        </p>
-      </div>
-
-      {/* Platform tabs */}
-      <div className="flex gap-1 rounded-lg border border-zinc-800 bg-zinc-900 p-1">
-        {platforms.map((platform) => (
-          <button
-            key={platform}
-            onClick={() => setActivePlatform(platform)}
-            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              activePlatform === platform
-                ? "bg-zinc-800 text-white"
-                : "text-zinc-500 hover:text-zinc-300"
-            }`}
-          >
-            <span
-              className="size-2 rounded-full"
-              style={{
-                backgroundColor: platformColors[platform] || "#71717a",
-              }}
+    <div className="space-y-10">
+      {/* ── Section 1: Overview Cards ── */}
+      <MotionSection>
+        <h2 className="mb-4 text-lg font-semibold text-white">Visao Geral</h2>
+        <MotionStagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <MotionItem>
+            <StatCard
+              icon={<Users className="size-4 text-zinc-400" />}
+              label="Total de Seguidores"
+              value={totalFollowers.toLocaleString("pt-BR")}
+              detail="Todas as plataformas"
             />
-            {platformNames[platform] || platform}
-          </button>
-        ))}
-      </div>
+          </MotionItem>
+          <MotionItem>
+            <StatCard
+              icon={<TrendingUp className="size-4 text-zinc-400" />}
+              label="Crescimento 28 dias"
+              value={`${totalGrowth28d >= 0 ? "+" : ""}${totalGrowth28d.toLocaleString("pt-BR")}`}
+              detail="Novos seguidores"
+            />
+          </MotionItem>
+          <MotionItem>
+            <StatCard
+              icon={<Eye className="size-4 text-zinc-400" />}
+              label="Alcance Total 28d"
+              value={formatNumber(totalReach28d)}
+              detail="Views + alcance"
+            />
+          </MotionItem>
+          <MotionItem>
+            <StatCard
+              icon={<Heart className="size-4 text-zinc-400" />}
+              label="Taxa de Engajamento"
+              value={`${overallEngagementRate}%`}
+              detail="Ponderada por views"
+            />
+          </MotionItem>
+          <MotionItem>
+            <StatCard
+              icon={<Clock className="size-4 text-zinc-400" />}
+              label="Horas Assistidas"
+              value={hoursWatched > 0 ? hoursWatched.toLocaleString("pt-BR") : "\u2014"}
+              detail="YouTube (28 dias)"
+            />
+          </MotionItem>
+          <MotionItem>
+            <StatCard
+              icon={<FileText className="size-4 text-zinc-400" />}
+              label="Conteudos Publicados"
+              value={totalContentCount.toString()}
+              detail="Total em todas as plataformas"
+            />
+          </MotionItem>
+        </MotionStagger>
+      </MotionSection>
 
-      {/* Content */}
-      <PlatformAudienceContent data={currentData} />
-    </div>
-  );
-}
-
-function PlatformAudienceContent({ data }: { data: AudienceInfo | null }) {
-  const hasData =
-    data &&
-    (data.genderSplit ||
-      data.ageRanges ||
-      data.topCountries ||
-      data.topCities ||
-      data.trafficSources);
-
-  if (!hasData) {
-    return (
-      <EmptyState message="Colete métricas desta plataforma para ver dados de audiência" />
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Demographics row */}
-      {(data.genderSplit || data.ageRanges) && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {data.genderSplit && <GenderChart genderSplit={data.genderSplit} />}
-          {data.ageRanges && <AgeBarChart ageRanges={data.ageRanges} />}
+      {/* ── Section 2: Publico por Plataforma ── */}
+      <MotionSection delay={0.1}>
+        <h2 className="mb-4 text-lg font-semibold text-white">Publico por Plataforma</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {platformOrder.map((plat) => {
+            const followers = platformFollowers[plat] ?? 0;
+            if (followers === 0) return null;
+            const pct = (followers / maxFollowers) * 100;
+            return (
+              <Card key={plat} className="border-zinc-800 bg-zinc-900">
+                <CardContent className="pt-0">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span
+                      className="size-3 rounded-full"
+                      style={{ backgroundColor: platformColors[plat] }}
+                    />
+                    <span className="text-sm font-medium text-zinc-300">
+                      {platformNames[plat]}
+                    </span>
+                  </div>
+                  <p className="text-2xl font-bold text-white mb-2">
+                    {followers.toLocaleString("pt-BR")}
+                  </p>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-800">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: platformColors[plat],
+                      }}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-600">
+                    {Math.round((followers / totalFollowers) * 100)}% do total
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
-      )}
+      </MotionSection>
 
-      {/* Geography + Traffic row */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {data.topCountries && (
-          <HorizontalBarSection
-            title="Principais Países"
+      {/* ── Section 3: De Onde Vem Seu Publico (Countries) ── */}
+      {topCountries && Object.keys(topCountries).length > 0 && (
+        <MotionSection delay={0.15}>
+          <h2 className="mb-4 text-lg font-semibold text-white">De Onde Vem Seu Publico</h2>
+          <HorizontalBars
+            title="Paises por visualizacoes"
             icon={<Globe className="size-4 text-zinc-500" />}
-            data={data.topCountries}
+            data={topCountries}
+            labelMap={COUNTRY_LABELS}
             formatValue={(v) => v.toLocaleString("pt-BR")}
           />
-        )}
+        </MotionSection>
+      )}
 
-        {data.topCities && (
-          <HorizontalBarSection
-            title="Principais Cidades"
-            icon={<MapPin className="size-4 text-zinc-500" />}
-            data={data.topCities}
-            suffix="%"
-          />
-        )}
-
-        {data.trafficSources && (
-          <HorizontalBarSection
-            title="Fontes de Tráfego"
+      {/* ── Section 4: Como Te Encontram (Traffic Sources) ── */}
+      {trafficSources && Object.keys(trafficSources).length > 0 && (
+        <MotionSection delay={0.2}>
+          <h2 className="mb-4 text-lg font-semibold text-white">Como Te Encontram</h2>
+          <HorizontalBars
+            title="Fontes de trafego"
             icon={<Radio className="size-4 text-zinc-500" />}
-            data={data.trafficSources}
+            data={trafficSources}
             labelMap={TRAFFIC_SOURCE_LABELS}
             formatValue={(v) => v.toLocaleString("pt-BR")}
           />
-        )}
-      </div>
+        </MotionSection>
+      )}
+
+      {/* ── Section 5: Analise de Engajamento ── */}
+      {Object.keys(engagementByPlatform).length > 0 && (
+        <MotionSection delay={0.25}>
+          <h2 className="mb-4 text-lg font-semibold text-white">Analise de Engajamento</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {(["INSTAGRAM", "YOUTUBE", "SPOTIFY"] as const).map((plat) => {
+              const data = engagementByPlatform[plat];
+              if (!data) return null;
+              return (
+                <Card key={plat} className="border-zinc-800 bg-zinc-900">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-300">
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ backgroundColor: platformColors[plat] }}
+                      />
+                      {platformNames[plat]}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+                          <Eye className="size-3" />
+                          Media de views
+                        </span>
+                        <span className="text-sm font-medium text-white">
+                          {formatNumber(data.avgViews)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+                          <Heart className="size-3" />
+                          Media de curtidas
+                        </span>
+                        <span className="text-sm font-medium text-white">
+                          {formatNumber(data.avgLikes)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+                          <MessageCircle className="size-3" />
+                          Media de comentarios
+                        </span>
+                        <span className="text-sm font-medium text-white">
+                          {formatNumber(data.avgComments)}
+                        </span>
+                      </div>
+                      <div className="border-t border-zinc-800 pt-2">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+                            <BarChart3 className="size-3" />
+                            Taxa de engajamento
+                          </span>
+                          <span className="text-sm font-bold text-white">
+                            {data.engagementRate}%
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-zinc-600">
+                        Baseado em {data.contentCount} conteudo{data.contentCount !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </MotionSection>
+      )}
+
+      {/* ── Section 6: Melhores Conteudos ── */}
+      {topContent.length > 0 && (
+        <MotionSection delay={0.3}>
+          <h2 className="mb-4 text-lg font-semibold text-white">Melhores Conteudos</h2>
+          <Card className="border-zinc-800 bg-zinc-900">
+            <CardContent className="pt-0">
+              <div className="divide-y divide-zinc-800">
+                {topContent.map((item, i) => (
+                  <div
+                    key={`${item.platform}-${item.title}-${i}`}
+                    className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
+                  >
+                    {/* Rank */}
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-zinc-800 text-sm font-bold text-zinc-400">
+                      {i + 1}
+                    </div>
+
+                    {/* Info */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        {item.url ? (
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="truncate text-sm font-medium text-white hover:text-zinc-300 transition-colors"
+                          >
+                            {item.title}
+                          </a>
+                        ) : (
+                          <span className="truncate text-sm font-medium text-white">
+                            {item.title}
+                          </span>
+                        )}
+                        {item.url && (
+                          <ExternalLink className="size-3 shrink-0 text-zinc-600" />
+                        )}
+                      </div>
+                      <div className="mt-1 flex items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className="border-zinc-700 text-zinc-400"
+                        >
+                          <span
+                            className="mr-1 inline-block size-1.5 rounded-full"
+                            style={{ backgroundColor: platformColors[item.platform] }}
+                          />
+                          {platformNames[item.platform] ?? item.platform}
+                        </Badge>
+                        <span className="text-xs text-zinc-600">
+                          {CONTENT_TYPE_LABELS[item.contentType] ?? item.contentType}
+                        </span>
+                        <span className="text-xs text-zinc-600">
+                          {formatDate(item.date)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="flex shrink-0 items-center gap-4 text-xs text-zinc-400">
+                      {item.views > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Eye className="size-3 text-zinc-600" />
+                          {formatNumber(item.views)}
+                        </span>
+                      )}
+                      {item.likes > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Heart className="size-3 text-zinc-600" />
+                          {formatNumber(item.likes)}
+                        </span>
+                      )}
+                      {item.comments > 0 && (
+                        <span className="flex items-center gap-1">
+                          <MessageCircle className="size-3 text-zinc-600" />
+                          {formatNumber(item.comments)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </MotionSection>
+      )}
     </div>
   );
 }
