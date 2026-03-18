@@ -8,7 +8,10 @@ function createPrismaClient() {
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set");
   }
-  const adapter = new PrismaPg({ connectionString });
+  // Force verify-full to silence pg SSL warning
+  const url = new URL(connectionString);
+  url.searchParams.set("sslmode", "verify-full");
+  const adapter = new PrismaPg({ connectionString: url.toString() });
   return new PrismaClient({ adapter });
 }
 
