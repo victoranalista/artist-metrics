@@ -12,41 +12,38 @@ import {
   CartesianGrid,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
-import { motion, AnimatePresence } from "framer-motion";
-import { Users, MapPin, Globe, BarChart3 } from "lucide-react";
+import { Users, MapPin, Globe, BarChart3, Radio } from "lucide-react";
 import {
   Card,
   CardHeader,
   CardTitle,
-  CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { formatPercent, platformColors, platformNames } from "@/lib/utils";
+import { platformColors, platformNames } from "@/lib/utils";
 
 interface AudienceInfo {
   ageRanges: Record<string, number> | null;
   genderSplit: Record<string, number> | null;
   topCountries: Record<string, number> | null;
   topCities: Record<string, number> | null;
+  trafficSources: Record<string, number> | null;
 }
 
 interface AudienceClientProps {
   platforms: string[];
   audienceData: Record<string, AudienceInfo>;
+  hasConnections: boolean;
 }
 
 const GENDER_COLORS: Record<string, string> = {
-  male: "#8b5cf6",
-  female: "#c084fc",
-  masculino: "#8b5cf6",
-  feminino: "#c084fc",
-  other: "#a1a1aa",
-  outro: "#a1a1aa",
-  unknown: "#52525b",
+  male: "#a1a1aa",
+  female: "#71717a",
+  masculino: "#a1a1aa",
+  feminino: "#71717a",
+  other: "#52525b",
+  outro: "#52525b",
+  unknown: "#3f3f46",
 };
 
 const GENDER_LABELS: Record<string, string> = {
@@ -59,66 +56,115 @@ const GENDER_LABELS: Record<string, string> = {
   unknown: "Desconhecido",
 };
 
-function GenderPieChart({
-  genderSplit,
+const TRAFFIC_SOURCE_LABELS: Record<string, string> = {
+  SEARCH: "Pesquisa",
+  SUGGESTED: "Sugeridos",
+  BROWSE_FEATURES: "Navegacao",
+  EXT_URL: "URL Externa",
+  EXTERNAL: "Externo",
+  NOTIFICATION: "Notificacao",
+  PLAYLIST: "Playlist",
+  SHORTS: "Shorts",
+  RELATED_VIDEO: "Videos Relacionados",
+  YT_SEARCH: "Pesquisa YouTube",
+  SUBSCRIBER: "Inscritos",
+  YT_CHANNEL: "Pagina do Canal",
+  ADVERTISING: "Publicidade",
+  NO_LINK_EMBEDDED: "Incorporado",
+  NO_LINK_OTHER: "Outro",
+  END_SCREEN: "Tela Final",
+  ANNOTATION: "Anotacao",
+  CAMPAIGN_CARD: "Cartao de Campanha",
+  HASHTAGS: "Hashtags",
+  LIVE_REDIRECT: "Redirect ao Vivo",
+  PROMOTED: "Promovido",
+  YT_OTHER_PAGE: "Outra Pagina YT",
+  YT_PLAYLIST_PAGE: "Pagina Playlist",
+  VIDEO_REMIXES: "Remixes",
+};
+
+function ChartTooltip({
+  active,
+  payload,
+  suffix = "",
 }: {
-  genderSplit: Record<string, number>;
+  active?: boolean;
+  payload?: Array<{ name: string; value: number }>;
+  suffix?: string;
 }) {
+  if (!active || !payload?.length) return null;
+  const item = payload[0];
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 shadow-lg">
+      <p className="text-xs text-zinc-400">
+        {item.name}:{" "}
+        <span className="font-medium text-white">
+          {typeof item.value === "number" ? item.value.toLocaleString("pt-BR") : item.value}
+          {suffix}
+        </span>
+      </p>
+    </div>
+  );
+}
+
+function GenderChart({ genderSplit }: { genderSplit: Record<string, number> }) {
   const data = Object.entries(genderSplit).map(([key, value]) => ({
     name: GENDER_LABELS[key.toLowerCase()] || key,
     value,
-    color: GENDER_COLORS[key.toLowerCase()] || "#8b5cf6",
+    color: GENDER_COLORS[key.toLowerCase()] || "#52525b",
   }));
 
+  const total = data.reduce((sum, d) => sum + d.value, 0);
+
   return (
-    <Card className="border-white/5 bg-zinc-900/60 backdrop-blur-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-white">
-          <Users className="size-4 text-violet-400" />
+    <Card className="border-zinc-800 bg-zinc-900">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-300">
+          <Users className="size-4 text-zinc-500" />
           Distribuicao por Genero
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[250px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={90}
-                paddingAngle={4}
-                dataKey="value"
-                stroke="none"
-              >
-                {data.map((entry, index) => (
-                  <Cell key={index} fill={entry.color} />
-                ))}
-              </Pie>
-              <RechartsTooltip
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null;
-                  const item = payload[0];
-                  return (
-                    <div className="rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 shadow-xl">
-                      <p className="text-xs text-zinc-300">
-                        {item.name}:{" "}
-                        <span className="font-medium text-white">
-                          {formatPercent((item.value as number) / 100)}
-                        </span>
-                      </p>
-                    </div>
-                  );
-                }}
-              />
-              <Legend
-                formatter={(value: string) => (
-                  <span className="text-xs text-zinc-300">{value}</span>
-                )}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+        <div className="flex items-center gap-6">
+          <div className="h-[160px] w-[160px] shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={72}
+                  paddingAngle={3}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {data.map((entry, index) => (
+                    <Cell key={index} fill={entry.color} />
+                  ))}
+                </Pie>
+                <RechartsTooltip
+                  content={({ active, payload }) => (
+                    <ChartTooltip active={active} payload={payload as Array<{ name: string; value: number }>} suffix="%" />
+                  )}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="space-y-2">
+            {data.map((entry) => (
+              <div key={entry.name} className="flex items-center gap-2">
+                <div
+                  className="size-2.5 rounded-full"
+                  style={{ backgroundColor: entry.color }}
+                />
+                <span className="text-sm text-zinc-400">{entry.name}</span>
+                <span className="ml-auto text-sm font-medium text-white">
+                  {total > 0 ? `${Math.round((entry.value / total) * 100)}%` : `${entry.value}%`}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -127,10 +173,7 @@ function GenderPieChart({
 
 function AgeBarChart({ ageRanges }: { ageRanges: Record<string, number> }) {
   const data = Object.entries(ageRanges)
-    .map(([range, value]) => ({
-      range,
-      value,
-    }))
+    .map(([range, value]) => ({ range, value }))
     .sort((a, b) => {
       const numA = parseInt(a.range);
       const numB = parseInt(b.range);
@@ -139,20 +182,20 @@ function AgeBarChart({ ageRanges }: { ageRanges: Record<string, number> }) {
     });
 
   return (
-    <Card className="border-white/5 bg-zinc-900/60 backdrop-blur-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-white">
-          <BarChart3 className="size-4 text-violet-400" />
+    <Card className="border-zinc-800 bg-zinc-900">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-300">
+          <BarChart3 className="size-4 text-zinc-500" />
           Faixa Etaria
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[250px] w-full">
+        <div className="h-[200px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data}
               layout="vertical"
-              margin={{ top: 4, right: 20, left: 10, bottom: 4 }}
+              margin={{ top: 0, right: 16, left: 4, bottom: 0 }}
             >
               <CartesianGrid
                 strokeDasharray="3 3"
@@ -172,29 +215,18 @@ function AgeBarChart({ ageRanges }: { ageRanges: Record<string, number> }) {
                 tick={{ fill: "#a1a1aa", fontSize: 11 }}
                 axisLine={{ stroke: "#27272a" }}
                 tickLine={false}
-                width={60}
+                width={56}
               />
               <RechartsTooltip
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null;
-                  const item = payload[0];
-                  return (
-                    <div className="rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 shadow-xl">
-                      <p className="text-xs text-zinc-300">
-                        {(item.payload as { range: string }).range}:{" "}
-                        <span className="font-medium text-white">
-                          {item.value}%
-                        </span>
-                      </p>
-                    </div>
-                  );
-                }}
+                content={({ active, payload }) => (
+                  <ChartTooltip active={active} payload={payload as Array<{ name: string; value: number }>} suffix="%" />
+                )}
               />
               <Bar
                 dataKey="value"
-                fill="#8b5cf6"
+                fill="#a1a1aa"
                 radius={[0, 4, 4, 0]}
-                barSize={20}
+                barSize={18}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -204,44 +236,58 @@ function AgeBarChart({ ageRanges }: { ageRanges: Record<string, number> }) {
   );
 }
 
-function TopCountries({
-  countries,
+function HorizontalBarSection({
+  title,
+  icon,
+  data,
+  labelMap,
+  suffix,
+  formatValue,
 }: {
-  countries: Record<string, number>;
+  title: string;
+  icon: React.ReactNode;
+  data: Record<string, number>;
+  labelMap?: Record<string, string>;
+  suffix?: string;
+  formatValue?: (v: number) => string;
 }) {
-  const sorted = Object.entries(countries)
+  const sorted = Object.entries(data)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 10);
   const maxValue = sorted.length > 0 ? sorted[0][1] : 1;
 
   return (
-    <Card className="border-white/5 bg-zinc-900/60 backdrop-blur-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-white">
-          <Globe className="size-4 text-violet-400" />
-          Principais Paises
+    <Card className="border-zinc-800 bg-zinc-900">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-300">
+          {icon}
+          {title}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {sorted.map(([country, value]) => (
-            <div key={country} className="space-y-1">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-zinc-300">{country}</span>
-                <span className="font-medium text-white">{value}%</span>
+          {sorted.map(([key, value]) => {
+            const label = labelMap?.[key] || key;
+            const displayValue = formatValue
+              ? formatValue(value)
+              : `${value.toLocaleString("pt-BR")}${suffix || ""}`;
+            return (
+              <div key={key} className="space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-zinc-400">{label}</span>
+                  <span className="font-medium text-white">{displayValue}</span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+                  <div
+                    className="h-full rounded-full bg-zinc-600 transition-all duration-500"
+                    style={{ width: `${(value / maxValue) * 100}%` }}
+                  />
+                </div>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-800">
-                <motion.div
-                  className="h-full rounded-full bg-violet-500"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(value / maxValue) * 100}%` }}
-                  transition={{ duration: 0.6, ease: "easeOut" }}
-                />
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {sorted.length === 0 && (
-            <p className="text-sm text-zinc-500">Sem dados disponíveis</p>
+            <p className="text-sm text-zinc-600">Sem dados disponiveis</p>
           )}
         </div>
       </CardContent>
@@ -249,151 +295,135 @@ function TopCountries({
   );
 }
 
-function TopCities({ cities }: { cities: Record<string, number> }) {
-  const sorted = Object.entries(cities)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 10);
-
+function EmptyState({ message }: { message: string }) {
   return (
-    <Card className="border-white/5 bg-zinc-900/60 backdrop-blur-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-white">
-          <MapPin className="size-4 text-violet-400" />
-          Principais Cidades
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2.5">
-          {sorted.map(([city, value], index) => (
-            <div
-              key={city}
-              className="flex items-center justify-between rounded-lg bg-zinc-800/50 px-3 py-2"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-medium text-zinc-500">
-                  {index + 1}
-                </span>
-                <span className="text-sm text-zinc-300">{city}</span>
-              </div>
-              <Badge
-                variant="secondary"
-                className="bg-violet-500/10 text-violet-400"
-              >
-                {value}%
-              </Badge>
-            </div>
-          ))}
-          {sorted.length === 0 && (
-            <p className="text-sm text-zinc-500">Sem dados disponíveis</p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function EmptyState() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/10 bg-zinc-900/40 py-16 text-center"
-    >
-      <Users className="mb-4 size-12 text-zinc-600" />
-      <h3 className="text-lg font-medium text-zinc-300">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 bg-zinc-900/50 py-16 text-center">
+      <Users className="mb-4 size-10 text-zinc-700" />
+      <h3 className="text-base font-medium text-zinc-400">
         Sem dados de audiencia
       </h3>
-      <p className="mt-1 max-w-sm text-sm text-zinc-500">
-        Conecte sua conta e colete metricas para ver dados de audiencia
-      </p>
-    </motion.div>
+      <p className="mt-1 max-w-sm text-sm text-zinc-600">{message}</p>
+    </div>
   );
 }
 
 export function AudienceClient({
   platforms,
   audienceData,
+  hasConnections,
 }: AudienceClientProps) {
-  const availablePlatforms = platforms.filter((p) => p in audienceData);
-  const defaultPlatform =
-    availablePlatforms.length > 0 ? availablePlatforms[0] : platforms[0];
+  const defaultPlatform = platforms.length > 0 ? platforms[0] : "";
   const [activePlatform, setActivePlatform] = useState(defaultPlatform);
 
+  if (!hasConnections || platforms.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Audiencia</h1>
+          <p className="mt-1 text-sm text-zinc-400">
+            Dados demograficos e distribuicao do seu publico por plataforma
+          </p>
+        </div>
+        <EmptyState message="Conecte uma plataforma e colete metricas para ver dados de audiencia" />
+      </div>
+    );
+  }
+
   const currentData = audienceData[activePlatform] ?? null;
-  const hasData =
-    currentData &&
-    (currentData.genderSplit ||
-      currentData.ageRanges ||
-      currentData.topCountries ||
-      currentData.topCities);
 
   return (
     <div className="space-y-6">
-      <Tabs
-        defaultValue={defaultPlatform}
-        onValueChange={(val) => setActivePlatform(val as string)}
-      >
-        <TabsList>
-          {platforms.map((platform) => (
-            <TabsTrigger key={platform} value={platform}>
-              <span
-                className="mr-1.5 inline-block size-2 rounded-full"
-                style={{
-                  backgroundColor: platformColors[platform] || "#8b5cf6",
-                }}
-              />
-              {platformNames[platform] || platform}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-white">Audiencia</h1>
+        <p className="mt-1 text-sm text-zinc-400">
+          Dados demograficos e distribuicao do seu publico por plataforma
+        </p>
+      </div>
 
+      {/* Platform tabs */}
+      <div className="flex gap-1 rounded-lg border border-zinc-800 bg-zinc-900 p-1">
         {platforms.map((platform) => (
-          <TabsContent key={platform} value={platform}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={platform}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-              >
-                <PlatformAudienceContent
-                  data={audienceData[platform] ?? null}
-                />
-              </motion.div>
-            </AnimatePresence>
-          </TabsContent>
+          <button
+            key={platform}
+            onClick={() => setActivePlatform(platform)}
+            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+              activePlatform === platform
+                ? "bg-zinc-800 text-white"
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            <span
+              className="size-2 rounded-full"
+              style={{
+                backgroundColor: platformColors[platform] || "#71717a",
+              }}
+            />
+            {platformNames[platform] || platform}
+          </button>
         ))}
-      </Tabs>
+      </div>
+
+      {/* Content */}
+      <PlatformAudienceContent data={currentData} />
     </div>
   );
 }
 
-function PlatformAudienceContent({
-  data,
-}: {
-  data: AudienceInfo | null;
-}) {
+function PlatformAudienceContent({ data }: { data: AudienceInfo | null }) {
   const hasData =
     data &&
-    (data.genderSplit || data.ageRanges || data.topCountries || data.topCities);
+    (data.genderSplit ||
+      data.ageRanges ||
+      data.topCountries ||
+      data.topCities ||
+      data.trafficSources);
 
   if (!hasData) {
-    return <EmptyState />;
+    return (
+      <EmptyState message="Colete metricas desta plataforma para ver dados de audiencia" />
+    );
   }
 
   return (
     <div className="space-y-6">
-      {/* Charts row */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {data.genderSplit && <GenderPieChart genderSplit={data.genderSplit} />}
-        {data.ageRanges && <AgeBarChart ageRanges={data.ageRanges} />}
-      </div>
+      {/* Demographics row */}
+      {(data.genderSplit || data.ageRanges) && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {data.genderSplit && <GenderChart genderSplit={data.genderSplit} />}
+          {data.ageRanges && <AgeBarChart ageRanges={data.ageRanges} />}
+        </div>
+      )}
 
-      {/* Location row */}
+      {/* Geography + Traffic row */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {data.topCountries && <TopCountries countries={data.topCountries} />}
-        {data.topCities && <TopCities cities={data.topCities} />}
+        {data.topCountries && (
+          <HorizontalBarSection
+            title="Principais Paises"
+            icon={<Globe className="size-4 text-zinc-500" />}
+            data={data.topCountries}
+            formatValue={(v) => v.toLocaleString("pt-BR")}
+          />
+        )}
+
+        {data.topCities && (
+          <HorizontalBarSection
+            title="Principais Cidades"
+            icon={<MapPin className="size-4 text-zinc-500" />}
+            data={data.topCities}
+            suffix="%"
+          />
+        )}
+
+        {data.trafficSources && (
+          <HorizontalBarSection
+            title="Fontes de Trafego"
+            icon={<Radio className="size-4 text-zinc-500" />}
+            data={data.trafficSources}
+            labelMap={TRAFFIC_SOURCE_LABELS}
+            formatValue={(v) => v.toLocaleString("pt-BR")}
+          />
+        )}
       </div>
     </div>
   );

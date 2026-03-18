@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { motion } from "framer-motion";
 import { Upload, Plus, FileSpreadsheet, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -30,8 +29,6 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { uploadManualMetrics } from "@/lib/actions";
 import { formatNumber, platformColors, platformNames } from "@/lib/utils";
 
@@ -108,7 +105,6 @@ export function UploadClient({ existingMetrics }: UploadClientProps) {
 
         toast.success("Metricas enviadas com sucesso!");
 
-        // Add to local list
         setMetrics((prev) => [
           {
             id: result.id,
@@ -129,183 +125,173 @@ export function UploadClient({ existingMetrics }: UploadClientProps) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-white">Upload Manual</h1>
+        <p className="mt-1 text-sm text-zinc-400">
+          Adicione metricas manualmente para plataformas que nao possuem integracao automatica
+        </p>
+      </div>
+
       {/* Upload Form */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Card className="border-white/5 bg-zinc-900/60 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Plus className="size-4 text-violet-400" />
-              Adicionar Metricas
-            </CardTitle>
-            <CardDescription className="text-zinc-400">
-              Preencha os campos abaixo para registrar metricas manualmente
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              {/* Platform and Date row */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-300">
-                    Plataforma
-                  </label>
-                  <Select
-                    value={platform}
-                    onValueChange={(val) => setPlatform(val as string)}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione a plataforma" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PLATFORM_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-300">
-                    Data
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="bg-zinc-800/50 border-white/10 text-white"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <Separator className="bg-white/5" />
-
-              {/* Metric fields */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-300">
-                    Seguidores
-                  </label>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={seguidores}
-                    onChange={(e) => setSeguidores(e.target.value)}
-                    className="bg-zinc-800/50 border-white/10 text-white"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-300">
-                    Views
-                  </label>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={views}
-                    onChange={(e) => setViews(e.target.value)}
-                    className="bg-zinc-800/50 border-white/10 text-white"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-300">
-                    Likes
-                  </label>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={likes}
-                    onChange={(e) => setLikes(e.target.value)}
-                    className="bg-zinc-800/50 border-white/10 text-white"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-300">
-                    Comentarios
-                  </label>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={comentarios}
-                    onChange={(e) => setComentarios(e.target.value)}
-                    className="bg-zinc-800/50 border-white/10 text-white"
-                  />
-                </div>
-              </div>
-
-              {/* Notes */}
+      <Card className="border-zinc-800 bg-zinc-900">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-300">
+            <Plus className="size-4 text-zinc-500" />
+            Adicionar Metricas
+          </CardTitle>
+          <CardDescription className="text-zinc-500">
+            Preencha os campos abaixo para registrar metricas manualmente
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-5">
+            {/* Platform and Date */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-300">
-                  Observacoes (opcional)
+                <label className="text-sm font-medium text-zinc-400">
+                  Plataforma
                 </label>
-                <Textarea
-                  placeholder="Adicione notas ou contexto sobre essas metricas..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="min-h-[80px] bg-zinc-800/50 border-white/10 text-white placeholder:text-zinc-600"
+                <Select
+                  value={platform}
+                  onValueChange={(val) => setPlatform(val as string)}
+                >
+                  <SelectTrigger className="w-full border-zinc-800 bg-zinc-800/50 text-white">
+                    <SelectValue placeholder="Selecione a plataforma" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLATFORM_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Data
+                </label>
+                <Input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="border-zinc-800 bg-zinc-800/50 text-white"
                 />
               </div>
-            </CardContent>
-            <CardFooter>
-              <Button
-                type="submit"
-                disabled={isPending}
-                className="bg-violet-600 text-white hover:bg-violet-700"
-              >
-                <Upload className="mr-2 size-4" />
-                {isPending ? "Enviando..." : "Enviar Metricas"}
-              </Button>
-            </CardFooter>
-          </form>
-        </Card>
-      </motion.div>
+            </div>
 
-      {/* Existing Metrics Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.1 }}
-      >
-        <Card className="border-white/5 bg-zinc-900/60 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <FileSpreadsheet className="size-4 text-violet-400" />
-              Historico de Uploads
-            </CardTitle>
-            <CardDescription className="text-zinc-400">
-              Metricas enviadas manualmente
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {metrics.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Calendar className="mb-3 size-10 text-zinc-600" />
-                <p className="text-sm text-zinc-500">
-                  Nenhuma metrica manual registrada ainda
-                </p>
+            {/* Metric fields */}
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Seguidores
+                </label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={seguidores}
+                  onChange={(e) => setSeguidores(e.target.value)}
+                  className="border-zinc-800 bg-zinc-800/50 text-white placeholder:text-zinc-700"
+                />
               </div>
-            ) : (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Views
+                </label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={views}
+                  onChange={(e) => setViews(e.target.value)}
+                  className="border-zinc-800 bg-zinc-800/50 text-white placeholder:text-zinc-700"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Likes
+                </label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={likes}
+                  onChange={(e) => setLikes(e.target.value)}
+                  className="border-zinc-800 bg-zinc-800/50 text-white placeholder:text-zinc-700"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Comentarios
+                </label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={comentarios}
+                  onChange={(e) => setComentarios(e.target.value)}
+                  className="border-zinc-800 bg-zinc-800/50 text-white placeholder:text-zinc-700"
+                />
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                Observacoes (opcional)
+              </label>
+              <Textarea
+                placeholder="Adicione notas ou contexto sobre essas metricas..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="min-h-[80px] border-zinc-800 bg-zinc-800/50 text-white placeholder:text-zinc-700"
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="border-t border-zinc-800 pt-4">
+            <Button
+              type="submit"
+              disabled={isPending}
+              className="bg-zinc-100 text-zinc-900 hover:bg-white"
+            >
+              <Upload className="mr-2 size-4" />
+              {isPending ? "Enviando..." : "Enviar Metricas"}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
+
+      {/* History Table */}
+      <Card className="border-zinc-800 bg-zinc-900">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-300">
+            <FileSpreadsheet className="size-4 text-zinc-500" />
+            Historico de Uploads
+          </CardTitle>
+          <CardDescription className="text-zinc-500">
+            Metricas enviadas manualmente
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {metrics.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Calendar className="mb-3 size-10 text-zinc-700" />
+              <p className="text-sm text-zinc-600">
+                Nenhuma metrica manual registrada ainda
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-white/5 hover:bg-transparent">
-                    <TableHead className="text-zinc-400">Plataforma</TableHead>
-                    <TableHead className="text-zinc-400">Data</TableHead>
-                    <TableHead className="text-zinc-400">Seguidores</TableHead>
-                    <TableHead className="text-zinc-400">Views</TableHead>
-                    <TableHead className="text-zinc-400">Likes</TableHead>
-                    <TableHead className="text-zinc-400">
-                      Comentarios
-                    </TableHead>
-                    <TableHead className="text-zinc-400">
-                      Observacoes
-                    </TableHead>
+                  <TableRow className="border-zinc-800 hover:bg-transparent">
+                    <TableHead className="text-zinc-500">Plataforma</TableHead>
+                    <TableHead className="text-zinc-500">Data</TableHead>
+                    <TableHead className="text-zinc-500">Seguidores</TableHead>
+                    <TableHead className="text-zinc-500">Views</TableHead>
+                    <TableHead className="text-zinc-500">Likes</TableHead>
+                    <TableHead className="text-zinc-500">Comentarios</TableHead>
+                    <TableHead className="text-zinc-500">Observacoes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -314,45 +300,42 @@ export function UploadClient({ existingMetrics }: UploadClientProps) {
                     return (
                       <TableRow
                         key={metric.id}
-                        className="border-white/5 hover:bg-zinc-800/40"
+                        className="border-zinc-800 hover:bg-zinc-800/40"
                       >
                         <TableCell>
-                          <Badge
-                            variant="secondary"
-                            className="text-xs"
-                            style={{
-                              backgroundColor: `${platformColors[metric.platform] || "#8b5cf6"}20`,
-                              color:
-                                platformColors[metric.platform] || "#8b5cf6",
-                            }}
-                          >
+                          <span className="flex items-center gap-2 text-sm text-zinc-300">
+                            <span
+                              className="size-2 rounded-full"
+                              style={{
+                                backgroundColor:
+                                  platformColors[metric.platform] || "#71717a",
+                              }}
+                            />
                             {platformNames[metric.platform] || metric.platform}
-                          </Badge>
+                          </span>
                         </TableCell>
-                        <TableCell className="text-zinc-300">
-                          {new Date(metric.date + "T00:00:00").toLocaleDateString("pt-BR")}
+                        <TableCell className="text-zinc-400">
+                          {new Date(
+                            metric.date + "T00:00:00"
+                          ).toLocaleDateString("pt-BR")}
                         </TableCell>
-                        <TableCell className="text-zinc-300">
+                        <TableCell className="text-white">
                           {data.seguidores != null
                             ? formatNumber(data.seguidores)
                             : "-"}
                         </TableCell>
-                        <TableCell className="text-zinc-300">
-                          {data.views != null
-                            ? formatNumber(data.views)
-                            : "-"}
+                        <TableCell className="text-white">
+                          {data.views != null ? formatNumber(data.views) : "-"}
                         </TableCell>
-                        <TableCell className="text-zinc-300">
-                          {data.likes != null
-                            ? formatNumber(data.likes)
-                            : "-"}
+                        <TableCell className="text-white">
+                          {data.likes != null ? formatNumber(data.likes) : "-"}
                         </TableCell>
-                        <TableCell className="text-zinc-300">
+                        <TableCell className="text-white">
                           {data.comentarios != null
                             ? formatNumber(data.comentarios)
                             : "-"}
                         </TableCell>
-                        <TableCell className="max-w-[200px] truncate text-zinc-500">
+                        <TableCell className="max-w-[200px] truncate text-zinc-600">
                           {metric.notes || "-"}
                         </TableCell>
                       </TableRow>
@@ -360,10 +343,10 @@ export function UploadClient({ existingMetrics }: UploadClientProps) {
                   })}
                 </TableBody>
               </Table>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

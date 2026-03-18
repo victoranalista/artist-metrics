@@ -1,4 +1,4 @@
-import { prisma, ARTIST_ID } from "@/lib/db";
+import { prisma, ARTIST_ID, getArtist } from "@/lib/db";
 import { OverviewCards } from "@/components/dashboard/overview-cards";
 import { GrowthChart } from "@/components/dashboard/growth-chart";
 import { PlatformComparison } from "@/components/dashboard/platform-comparison";
@@ -7,7 +7,8 @@ import { RecentActivity } from "@/components/dashboard/recent-activity";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [snapshots, connections] = await Promise.all([
+  const [artist, snapshots, connections] = await Promise.all([
+    getArtist(),
     prisma.metricsSnapshot.findMany({
       where: { artistId: ARTIST_ID },
       include: { contentMetrics: true, audienceMetrics: true },
@@ -104,13 +105,14 @@ export default async function DashboardPage() {
         id: c.id,
         title: c.title,
         contentType: c.contentType,
-        views: c.views,
-        likes: c.likes,
+        views: c.views ?? 0,
+        likes: c.likes ?? 0,
         platform: s.platform,
+        date: s.date.toISOString().split("T")[0],
       }))
     )
     .sort((a, b) => (b.views || 0) - (a.views || 0))
-    .slice(0, 10);
+    .slice(0, 8);
 
   // Platform comparison data
   const platformData = Array.from(latestByPlatform.entries()).map(
@@ -136,10 +138,30 @@ export default async function DashboardPage() {
     }
   }
 
+  // Format current date in PT-BR
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Welcome header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-white">
+          Bem-vindo, {artist.name}
+        </h1>
+        <p className="mt-1 text-sm text-zinc-400 capitalize">{dateStr}</p>
+      </div>
+
+      {/* KPI cards */}
       <OverviewCards data={overviewData} />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      {/* Chart + Recent content */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <GrowthChart data={chartData} />
         </div>
@@ -147,7 +169,14 @@ export default async function DashboardPage() {
           <RecentActivity items={recentContent} />
         </div>
       </div>
-      <PlatformComparison data={platformData} />
+
+      {/* Platform comparison */}
+      <div>
+        <h2 className="mb-4 text-base font-semibold text-white">
+          Comparativo de Plataformas
+        </h2>
+        <PlatformComparison data={platformData} />
+      </div>
     </div>
   );
 }

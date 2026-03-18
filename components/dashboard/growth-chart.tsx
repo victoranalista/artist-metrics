@@ -1,19 +1,22 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { formatNumber, platformColors, platformNames } from "@/lib/utils";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 
 interface ChartDataPoint {
   date: string;
@@ -26,38 +29,35 @@ interface GrowthChartProps {
   data: ChartDataPoint[];
 }
 
-function CustomTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ dataKey: string; value: number; color: string; name: string }>;
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
+const chartConfig = {
+  YOUTUBE: {
+    label: "YouTube",
+    color: "hsl(0 0% 63%)",
+  },
+  INSTAGRAM: {
+    label: "Instagram",
+    color: "hsl(0 0% 45%)",
+  },
+  SPOTIFY: {
+    label: "Spotify",
+    color: "hsl(0 0% 83%)",
+  },
+} satisfies ChartConfig;
 
-  return (
-    <div className="rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 shadow-xl">
-      <p className="mb-1.5 text-xs font-medium text-zinc-400">{label}</p>
-      {payload.map((entry) => (
-        <div key={entry.dataKey} className="flex items-center gap-2 text-xs">
-          <div
-            className="size-2 rounded-full"
-            style={{ backgroundColor: entry.color }}
-          />
-          <span className="text-zinc-300">{entry.name}:</span>
-          <span className="font-medium text-white">
-            {formatNumber(entry.value)}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
+const periods = [
+  { value: "7d", label: "7 dias" },
+  { value: "30d", label: "30 dias" },
+  { value: "90d", label: "90 dias" },
+];
+
+const metrics = [
+  { value: "followers", label: "Inscritos" },
+  { value: "views", label: "Views" },
+];
 
 export function GrowthChart({ data }: GrowthChartProps) {
-  const [activeTab, setActiveTab] = useState("followers");
+  const [timeRange, setTimeRange] = useState("90d");
+  const [metric, setMetric] = useState<"followers" | "views">("followers");
 
   const platforms = useMemo(() => {
     const set = new Set<string>();
@@ -65,139 +65,158 @@ export function GrowthChart({ data }: GrowthChartProps) {
     return Array.from(set);
   }, [data]);
 
-  // Pivot data: group by date, each platform becomes a column
   const pivotedData = useMemo(() => {
     const map = new Map<string, Record<string, number | string>>();
     const sorted = [...data].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
-
     for (const point of sorted) {
       if (!map.has(point.date)) {
         map.set(point.date, { date: point.date });
       }
       const row = map.get(point.date)!;
-      row[`${point.platform}_followers`] = point.followers;
-      row[`${point.platform}_views`] = point.views;
+      row[point.platform] =
+        metric === "followers" ? point.followers : point.views;
     }
-
     return Array.from(map.values());
-  }, [data]);
+  }, [data, metric]);
 
-  const metric = activeTab === "followers" ? "followers" : "views";
+  const filteredData = useMemo(() => {
+    if (pivotedData.length === 0) return [];
+    const dates = pivotedData.map((d) => new Date(d.date as string).getTime());
+    const maxDate = Math.max(...dates);
+    const days = timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 90;
+    const cutoff = maxDate - days * 24 * 60 * 60 * 1000;
+    return pivotedData.filter(
+      (d) => new Date(d.date as string).getTime() >= cutoff
+    );
+  }, [pivotedData, timeRange]);
 
   return (
-    <Card className="border-white/5 bg-zinc-900/60 backdrop-blur-sm">
-      <CardHeader>
-        <CardTitle className="text-white">Crescimento</CardTitle>
+    <Card className="border-zinc-800 bg-zinc-900 pt-0">
+      <CardHeader className="flex items-center gap-2 space-y-0 border-b border-zinc-800 py-5 sm:flex-row">
+        <div className="grid flex-1 gap-1">
+          <CardTitle className="text-sm font-semibold text-zinc-100">
+            Crescimento
+          </CardTitle>
+          <CardDescription className="text-xs text-zinc-500">
+            {metric === "followers" ? "Inscritos" : "Visualizacoes"} ao longo do tempo
+          </CardDescription>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {/* Metric toggle */}
+          <div className="flex rounded-lg border border-zinc-800 bg-zinc-950 p-0.5">
+            {metrics.map((m) => (
+              <button
+                key={m.value}
+                onClick={() => setMetric(m.value as "followers" | "views")}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                  metric === m.value
+                    ? "bg-zinc-800 text-zinc-100"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          {/* Period toggle */}
+          <div className="hidden rounded-lg border border-zinc-800 bg-zinc-950 p-0.5 sm:flex">
+            {periods.map((p) => (
+              <button
+                key={p.value}
+                onClick={() => setTimeRange(p.value)}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                  timeRange === p.value
+                    ? "bg-zinc-800 text-zinc-100"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </CardHeader>
-      <CardContent>
-        <Tabs
-          defaultValue="followers"
-          onValueChange={(val) => setActiveTab(val as string)}
-        >
-          <TabsList className="mb-4">
-            <TabsTrigger value="followers">Seguidores</TabsTrigger>
-            <TabsTrigger value="views">Visualizacoes</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="followers">
-            <ChartArea
-              data={pivotedData}
-              platforms={platforms}
-              metric="followers"
-            />
-          </TabsContent>
-          <TabsContent value="views">
-            <ChartArea
-              data={pivotedData}
-              platforms={platforms}
-              metric="views"
-            />
-          </TabsContent>
-        </Tabs>
+      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+        {filteredData.length === 0 ? (
+          <div className="flex h-[250px] items-center justify-center">
+            <p className="text-sm text-zinc-500">
+              Sem dados para o periodo selecionado
+            </p>
+          </div>
+        ) : (
+          <ChartContainer
+            config={chartConfig}
+            className="aspect-auto h-[250px] w-full"
+          >
+            <AreaChart data={filteredData}>
+              <defs>
+                {platforms.map((platform) => (
+                  <linearGradient
+                    key={platform}
+                    id={`fill-${platform}`}
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="5%"
+                      stopColor={`var(--color-${platform})`}
+                      stopOpacity={0.8}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={`var(--color-${platform})`}
+                      stopOpacity={0.1}
+                    />
+                  </linearGradient>
+                ))}
+              </defs>
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="date"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                minTickGap={32}
+                tickFormatter={(value) =>
+                  new Date(value).toLocaleDateString("pt-BR", {
+                    month: "short",
+                    day: "numeric",
+                  })
+                }
+              />
+              <ChartTooltip
+                cursor={false}
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={(value) =>
+                      new Date(value).toLocaleDateString("pt-BR", {
+                        month: "short",
+                        day: "numeric",
+                      })
+                    }
+                    indicator="dot"
+                  />
+                }
+              />
+              {platforms.map((platform) => (
+                <Area
+                  key={platform}
+                  dataKey={platform}
+                  type="natural"
+                  fill={`url(#fill-${platform})`}
+                  stroke={`var(--color-${platform})`}
+                  stackId="a"
+                />
+              ))}
+              <ChartLegend content={<ChartLegendContent />} />
+            </AreaChart>
+          </ChartContainer>
+        )}
       </CardContent>
     </Card>
-  );
-}
-
-function ChartArea({
-  data,
-  platforms,
-  metric,
-}: {
-  data: Record<string, number | string>[];
-  platforms: string[];
-  metric: string;
-}) {
-  return (
-    <div className="h-[300px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-          <defs>
-            {platforms.map((platform) => (
-              <linearGradient
-                key={platform}
-                id={`gradient-${platform}-${metric}`}
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
-                <stop
-                  offset="0%"
-                  stopColor={platformColors[platform] || "#8b5cf6"}
-                  stopOpacity={0.3}
-                />
-                <stop
-                  offset="100%"
-                  stopColor={platformColors[platform] || "#8b5cf6"}
-                  stopOpacity={0}
-                />
-              </linearGradient>
-            ))}
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-          <XAxis
-            dataKey="date"
-            tick={{ fill: "#71717a", fontSize: 11 }}
-            axisLine={{ stroke: "#27272a" }}
-            tickLine={false}
-            tickFormatter={(value: string) => {
-              const d = new Date(value);
-              return `${d.getDate()}/${d.getMonth() + 1}`;
-            }}
-          />
-          <YAxis
-            tick={{ fill: "#71717a", fontSize: 11 }}
-            axisLine={{ stroke: "#27272a" }}
-            tickLine={false}
-            tickFormatter={(value: number) => formatNumber(value)}
-            width={50}
-          />
-          <RechartsTooltip content={<CustomTooltip />} />
-          <Legend
-            formatter={(value: string) => {
-              const platform = value.replace(`_${metric}`, "");
-              return platformNames[platform] || platform;
-            }}
-            wrapperStyle={{ fontSize: 12 }}
-          />
-          {platforms.map((platform) => (
-            <Area
-              key={platform}
-              type="monotone"
-              dataKey={`${platform}_${metric}`}
-              name={`${platform}_${metric}`}
-              stroke={platformColors[platform] || "#8b5cf6"}
-              fill={`url(#gradient-${platform}-${metric})`}
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4, strokeWidth: 0 }}
-            />
-          ))}
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
   );
 }

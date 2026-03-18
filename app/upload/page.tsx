@@ -15,16 +15,5 @@ export default async function UploadPage() {
     createdAt: m.createdAt.toISOString(),
   }));
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Upload Manual</h1>
-        <p className="text-sm text-zinc-400">
-          Adicione metricas manualmente para plataformas que nao possuem integracao automatica
-        </p>
-      </div>
-
-      <UploadClient existingMetrics={serializedMetrics} />
-    </div>
-  );
+  return <UploadClient existingMetrics={serializedMetrics} />;
 }

@@ -1,8 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
-import { motion } from "framer-motion";
 import {
   Card,
   CardHeader,
@@ -11,7 +9,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableHeader,
@@ -27,16 +25,14 @@ import {
   MessageCircle,
   Play,
   Music,
-  ImageIcon,
   FileVideo,
+  ImageIcon,
   Inbox,
+  BarChart3,
+  TrendingUp,
+  Video,
 } from "lucide-react";
-import {
-  cn,
-  formatNumber,
-  platformColors,
-  platformNames,
-} from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 
 // ── Types ──
 
@@ -44,8 +40,7 @@ interface ContentItem {
   id: string;
   contentId: string;
   contentType: string;
-  title: string | null;
-  thumbnailUrl: string | null;
+  title: string;
   publishedAt: string | null;
   url: string | null;
   views: number;
@@ -60,47 +55,78 @@ interface ContentClientProps {
   content: ContentItem[];
 }
 
-type SortKey = "views" | "likes" | "comments" | "publishedAt";
+type SortKey = "views" | "likes" | "comments" | "engagement" | "publishedAt";
 type SortDirection = "asc" | "desc";
 
 // ── Helpers ──
 
 const contentTypeLabels: Record<string, string> = {
-  VIDEO: "Video",
+  VIDEO: "Vídeo",
+  video: "Vídeo",
   SHORT: "Short",
+  short: "Short",
   REEL: "Reel",
+  reel: "Reel",
   POST: "Post",
+  post: "Post",
   STORY: "Story",
-  TRACK: "Faixa",
-  ALBUM: "Album",
+  story: "Story",
+  TRACK: "Música",
+  track: "Música",
+  ALBUM: "Álbum",
+  album: "Álbum",
   PLAYLIST: "Playlist",
+  playlist: "Playlist",
 };
 
 const contentTypeIcons: Record<string, React.ReactNode> = {
   VIDEO: <Play className="size-3" />,
+  video: <Play className="size-3" />,
   SHORT: <FileVideo className="size-3" />,
+  short: <FileVideo className="size-3" />,
   REEL: <FileVideo className="size-3" />,
+  reel: <FileVideo className="size-3" />,
   POST: <ImageIcon className="size-3" />,
+  post: <ImageIcon className="size-3" />,
   STORY: <ImageIcon className="size-3" />,
+  story: <ImageIcon className="size-3" />,
   TRACK: <Music className="size-3" />,
+  track: <Music className="size-3" />,
   ALBUM: <Music className="size-3" />,
+  album: <Music className="size-3" />,
   PLAYLIST: <Music className="size-3" />,
+  playlist: <Music className="size-3" />,
 };
 
 function formatDate(iso: string | null): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return d.toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  if (!iso) return "\u2014";
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "\u2014";
+    return d.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return "\u2014";
+  }
 }
+
+function calcEngagement(views: number, likes: number): string {
+  if (!views || views === 0) return "0%";
+  return `${((likes / views) * 100).toFixed(1)}%`;
+}
+
+const isVideoType = (type: string) =>
+  ["VIDEO", "video", "SHORT", "short", "REEL", "reel"].includes(type);
+const isMusicType = (type: string) =>
+  ["TRACK", "track", "ALBUM", "album", "PLAYLIST", "playlist"].includes(type);
 
 // ── Component ──
 
 export function ContentClient({ content }: ContentClientProps) {
-  const [platformFilter, setPlatformFilter] = useState("ALL");
+  const [contentFilter, setContentFilter] = useState("ALL");
   const [sortKey, setSortKey] = useState<SortKey>("views");
   const [sortDir, setSortDir] = useState<SortDirection>("desc");
 
@@ -114,10 +140,13 @@ export function ContentClient({ content }: ContentClientProps) {
   };
 
   const filtered = useMemo(() => {
-    let items =
-      platformFilter === "ALL"
-        ? content
-        : content.filter((c) => c.platform === platformFilter);
+    let items = content;
+
+    if (contentFilter === "VIDEOS") {
+      items = content.filter((c) => isVideoType(c.contentType));
+    } else if (contentFilter === "MUSIC") {
+      items = content.filter((c) => isMusicType(c.contentType));
+    }
 
     items = [...items].sort((a, b) => {
       let aVal: number;
@@ -126,16 +155,30 @@ export function ContentClient({ content }: ContentClientProps) {
       if (sortKey === "publishedAt") {
         aVal = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
         bVal = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+      } else if (sortKey === "engagement") {
+        aVal = a.views > 0 ? a.likes / a.views : 0;
+        bVal = b.views > 0 ? b.likes / b.views : 0;
       } else {
-        aVal = a[sortKey];
-        bVal = b[sortKey];
+        aVal = a[sortKey] ?? 0;
+        bVal = b[sortKey] ?? 0;
       }
 
       return sortDir === "asc" ? aVal - bVal : bVal - aVal;
     });
 
     return items;
-  }, [content, platformFilter, sortKey, sortDir]);
+  }, [content, contentFilter, sortKey, sortDir]);
+
+  // Stats
+  const totalVideos = content.length;
+  const avgViews =
+    totalVideos > 0
+      ? Math.round(content.reduce((s, c) => s + c.views, 0) / totalVideos)
+      : 0;
+  const topVideo = content.reduce(
+    (best, c) => (c.views > (best?.views ?? 0) ? c : best),
+    content[0] as ContentItem | undefined
+  );
 
   const SortableHeader = ({
     label,
@@ -152,7 +195,7 @@ export function ContentClient({ content }: ContentClientProps) {
       <ArrowUpDown
         className={cn(
           "size-3",
-          sortKey === column ? "text-violet-400" : "text-zinc-600"
+          sortKey === column ? "text-zinc-300" : "text-zinc-600"
         )}
       />
     </button>
@@ -163,192 +206,216 @@ export function ContentClient({ content }: ContentClientProps) {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white">
-          Desempenho de Conteudo
+          Desempenho de Conteúdo
         </h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Analise detalhada do desempenho de cada conteudo publicado.
+          Análise detalhada do desempenho de cada conteúdo publicado.
         </p>
       </div>
 
-      {/* Platform Filter */}
+      {/* Summary stats */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Card className="border-zinc-800 bg-zinc-900">
+          <CardContent className="pt-0">
+            <div className="flex items-center gap-3">
+              <div className="flex size-9 items-center justify-center rounded-lg bg-zinc-800">
+                <Video className="size-4 text-zinc-400" />
+              </div>
+              <div>
+                <p className="text-xs text-zinc-400">Total de conteúdos</p>
+                <p className="text-lg font-bold text-white">{totalVideos}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-zinc-800 bg-zinc-900">
+          <CardContent className="pt-0">
+            <div className="flex items-center gap-3">
+              <div className="flex size-9 items-center justify-center rounded-lg bg-zinc-800">
+                <BarChart3 className="size-4 text-zinc-400" />
+              </div>
+              <div>
+                <p className="text-xs text-zinc-400">Média de views</p>
+                <p className="text-lg font-bold text-white">
+                  {formatNumber(avgViews)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-zinc-800 bg-zinc-900">
+          <CardContent className="pt-0">
+            <div className="flex items-center gap-3">
+              <div className="flex size-9 items-center justify-center rounded-lg bg-zinc-800">
+                <TrendingUp className="size-4 text-zinc-400" />
+              </div>
+              <div>
+                <p className="text-xs text-zinc-400">Mais visualizado</p>
+                <p
+                  className="max-w-[180px] truncate text-sm font-bold text-white"
+                  title={topVideo?.title ?? ""}
+                >
+                  {topVideo
+                    ? `${topVideo.title} (${formatNumber(topVideo.views)})`
+                    : "\u2014"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filter tabs */}
       <Tabs
         defaultValue="ALL"
-        onValueChange={(v) => setPlatformFilter(v as string)}
+        onValueChange={(v) => setContentFilter(v as string)}
       >
         <TabsList>
           <TabsTrigger value="ALL">Todos</TabsTrigger>
-          <TabsTrigger value="YOUTUBE">YouTube</TabsTrigger>
-          <TabsTrigger value="INSTAGRAM">Instagram</TabsTrigger>
-          <TabsTrigger value="SPOTIFY">Spotify</TabsTrigger>
+          <TabsTrigger value="VIDEOS">Vídeos</TabsTrigger>
+          <TabsTrigger value="MUSIC">Músicas</TabsTrigger>
         </TabsList>
       </Tabs>
 
       {/* Content Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Card className="border-white/5 bg-zinc-900/60 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-white">Conteudos</CardTitle>
-            <CardDescription>
-              {filtered.length}{" "}
-              {filtered.length === 1 ? "conteudo encontrado" : "conteudos encontrados"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <Inbox className="mb-3 size-10 text-zinc-600" />
-                <p className="text-sm font-medium">
-                  Nenhum conteudo encontrado
-                </p>
-                <p className="mt-1 text-xs text-zinc-600">
-                  Conecte suas plataformas e colete metricas para ver seus
-                  conteudos aqui.
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-white/5 hover:bg-transparent">
-                      <TableHead className="w-[60px] text-xs text-zinc-500">
-                        Thumb
-                      </TableHead>
-                      <TableHead className="text-xs text-zinc-500">
-                        Titulo
-                      </TableHead>
-                      <TableHead className="text-xs text-zinc-500">
-                        Tipo
-                      </TableHead>
-                      <TableHead className="text-xs text-zinc-500">
-                        Plataforma
-                      </TableHead>
-                      <TableHead className="text-right">
-                        <SortableHeader label="Views" column="views" />
-                      </TableHead>
-                      <TableHead className="text-right">
-                        <SortableHeader label="Curtidas" column="likes" />
-                      </TableHead>
-                      <TableHead className="text-right">
-                        <SortableHeader
-                          label="Comentarios"
-                          column="comments"
-                        />
-                      </TableHead>
-                      <TableHead className="text-right">
-                        <SortableHeader label="Data" column="publishedAt" />
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((item) => (
-                      <TableRow
-                        key={item.id}
-                        className="border-white/5 hover:bg-white/[0.02]"
-                      >
-                        {/* Thumbnail */}
-                        <TableCell>
-                          {item.thumbnailUrl ? (
-                            <div className="relative size-10 overflow-hidden rounded-md bg-zinc-800">
-                              <Image
-                                src={item.thumbnailUrl}
-                                alt={item.title ?? ""}
-                                fill
-                                className="object-cover"
-                                sizes="40px"
-                              />
-                            </div>
-                          ) : (
-                            <div className="flex size-10 items-center justify-center rounded-md bg-zinc-800 text-zinc-600">
-                              <Play className="size-4" />
-                            </div>
-                          )}
-                        </TableCell>
-
-                        {/* Title */}
-                        <TableCell className="max-w-[260px]">
-                          {item.url ? (
-                            <a
-                              href={item.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="line-clamp-1 text-sm font-medium text-white hover:text-violet-400 transition-colors"
-                            >
-                              {item.title}
-                            </a>
-                          ) : (
-                            <span className="line-clamp-1 text-sm font-medium text-white">
-                              {item.title}
-                            </span>
-                          )}
-                        </TableCell>
-
-                        {/* Type Badge */}
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className="gap-1 border-white/10 text-zinc-400"
+      <Card className="border-zinc-800 bg-zinc-900">
+        <CardHeader>
+          <CardTitle className="text-base font-semibold text-white">
+            Conteúdos
+          </CardTitle>
+          <CardDescription className="text-zinc-500">
+            {filtered.length}{" "}
+            {filtered.length === 1
+              ? "conteúdo encontrado"
+              : "conteúdos encontrados"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <Inbox className="mb-3 size-10 text-zinc-600" />
+              <p className="text-sm font-medium">
+                Nenhum conteúdo encontrado
+              </p>
+              <p className="mt-1 text-xs text-zinc-600">
+                Conecte suas plataformas e colete métricas para ver seus
+                conteúdos aqui.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-zinc-800 hover:bg-transparent">
+                    <TableHead className="text-xs text-zinc-500">
+                      Título
+                    </TableHead>
+                    <TableHead className="text-xs text-zinc-500">
+                      Tipo
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <SortableHeader label="Visualizações" column="views" />
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <SortableHeader label="Curtidas" column="likes" />
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <SortableHeader
+                        label="Comentários"
+                        column="comments"
+                      />
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <SortableHeader
+                        label="Engajamento"
+                        column="engagement"
+                      />
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <SortableHeader
+                        label="Publicação"
+                        column="publishedAt"
+                      />
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((item) => (
+                    <TableRow
+                      key={item.id}
+                      className="border-zinc-800/50 hover:bg-white/[0.02]"
+                    >
+                      {/* Title */}
+                      <TableCell className="max-w-[280px]">
+                        {item.url ? (
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="line-clamp-1 text-sm font-medium text-white hover:text-zinc-300 transition-colors"
                           >
-                            {contentTypeIcons[item.contentType]}
-                            {contentTypeLabels[item.contentType] ||
-                              item.contentType}
-                          </Badge>
-                        </TableCell>
-
-                        {/* Platform */}
-                        <TableCell>
-                          <div className="flex items-center gap-2 text-sm text-zinc-300">
-                            <span
-                              className="size-2 rounded-full"
-                              style={{
-                                backgroundColor:
-                                  platformColors[item.platform],
-                              }}
-                            />
-                            {platformNames[item.platform] || item.platform}
-                          </div>
-                        </TableCell>
-
-                        {/* Views */}
-                        <TableCell className="text-right">
-                          <span className="flex items-center justify-end gap-1 text-sm text-zinc-300">
-                            <Eye className="size-3 text-zinc-500" />
-                            {formatNumber(item.views)}
+                            {item.title}
+                          </a>
+                        ) : (
+                          <span className="line-clamp-1 text-sm font-medium text-white">
+                            {item.title}
                           </span>
-                        </TableCell>
+                        )}
+                      </TableCell>
 
-                        {/* Likes */}
-                        <TableCell className="text-right">
-                          <span className="flex items-center justify-end gap-1 text-sm text-zinc-300">
-                            <Heart className="size-3 text-zinc-500" />
-                            {formatNumber(item.likes)}
-                          </span>
-                        </TableCell>
+                      {/* Type Badge */}
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className="gap-1 border-zinc-800 text-zinc-400"
+                        >
+                          {contentTypeIcons[item.contentType]}
+                          {contentTypeLabels[item.contentType] ||
+                            item.contentType}
+                        </Badge>
+                      </TableCell>
 
-                        {/* Comments */}
-                        <TableCell className="text-right">
-                          <span className="flex items-center justify-end gap-1 text-sm text-zinc-300">
-                            <MessageCircle className="size-3 text-zinc-500" />
-                            {formatNumber(item.comments)}
-                          </span>
-                        </TableCell>
+                      {/* Views */}
+                      <TableCell className="text-right">
+                        <span className="flex items-center justify-end gap-1 text-sm text-zinc-300">
+                          <Eye className="size-3 text-zinc-600" />
+                          {formatNumber(item.views)}
+                        </span>
+                      </TableCell>
 
-                        {/* Date */}
-                        <TableCell className="text-right text-sm text-zinc-400">
-                          {formatDate(item.publishedAt)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+                      {/* Likes */}
+                      <TableCell className="text-right">
+                        <span className="flex items-center justify-end gap-1 text-sm text-zinc-300">
+                          <Heart className="size-3 text-zinc-600" />
+                          {formatNumber(item.likes)}
+                        </span>
+                      </TableCell>
+
+                      {/* Comments */}
+                      <TableCell className="text-right">
+                        <span className="flex items-center justify-end gap-1 text-sm text-zinc-300">
+                          <MessageCircle className="size-3 text-zinc-600" />
+                          {formatNumber(item.comments)}
+                        </span>
+                      </TableCell>
+
+                      {/* Engagement Rate */}
+                      <TableCell className="text-right text-sm text-zinc-400">
+                        {calcEngagement(item.views, item.likes)}
+                      </TableCell>
+
+                      {/* Date */}
+                      <TableCell className="text-right text-sm text-zinc-500">
+                        {formatDate(item.publishedAt)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
