@@ -69,65 +69,65 @@ const COUNTRY_LABELS: Record<string, string> = {
   BR: "Brasil",
   US: "Estados Unidos",
   PT: "Portugal",
-  MZ: "Mocambique",
+  MZ: "Moçambique",
   AO: "Angola",
   CV: "Cabo Verde",
-  GW: "Guine-Bissau",
+  GW: "Guiné-Bissau",
   TL: "Timor-Leste",
-  FR: "Franca",
+  FR: "França",
   ES: "Espanha",
   GB: "Reino Unido",
   DE: "Alemanha",
-  IT: "Italia",
-  JP: "Japao",
-  MX: "Mexico",
+  IT: "Itália",
+  JP: "Japão",
+  MX: "México",
   AR: "Argentina",
-  CO: "Colombia",
+  CO: "Colômbia",
   CL: "Chile",
   PE: "Peru",
-  IN: "India",
+  IN: "Índia",
 };
 
 const TRAFFIC_SOURCE_LABELS: Record<string, string> = {
   SHORTS: "YouTube Shorts",
   YT_SEARCH: "Busca no YouTube",
   SUBSCRIBER: "Inscritos",
-  YT_CHANNEL: "Pagina do Canal",
+  YT_CHANNEL: "Página do Canal",
   EXT_URL: "Links Externos",
   PLAYLIST: "Playlists",
   SEARCH: "Pesquisa",
   SUGGESTED: "Sugeridos",
-  BROWSE_FEATURES: "Navegacao",
+  BROWSE_FEATURES: "Navegação",
   EXTERNAL: "Externo",
-  NOTIFICATION: "Notificacoes",
-  RELATED_VIDEO: "Videos Relacionados",
+  NOTIFICATION: "Notificações",
+  RELATED_VIDEO: "Vídeos Relacionados",
   ADVERTISING: "Publicidade",
   NO_LINK_EMBEDDED: "Incorporado",
   NO_LINK_OTHER: "Outro",
   END_SCREEN: "Tela Final",
-  ANNOTATION: "Anotacao",
-  CAMPAIGN_CARD: "Cartao de Campanha",
+  ANNOTATION: "Anotação",
+  CAMPAIGN_CARD: "Cartão de Campanha",
   HASHTAGS: "Hashtags",
   LIVE_REDIRECT: "Redirect ao Vivo",
   PROMOTED: "Promovido",
-  YT_OTHER_PAGE: "Outra Pagina YT",
-  YT_PLAYLIST_PAGE: "Pagina Playlist",
+  YT_OTHER_PAGE: "Outra Página YT",
+  YT_PLAYLIST_PAGE: "Página Playlist",
   VIDEO_REMIXES: "Remixes",
 };
 
 const CONTENT_TYPE_LABELS: Record<string, string> = {
-  VIDEO: "Video",
-  video: "Video",
+  VIDEO: "Vídeo",
+  video: "Vídeo",
   SHORT: "Short",
   short: "Short",
   REEL: "Reel",
   reel: "Reel",
   POST: "Post",
   post: "Post",
-  TRACK: "Musica",
-  track: "Musica",
-  ALBUM: "Album",
-  album: "Album",
+  TRACK: "Música",
+  track: "Música",
+  ALBUM: "Álbum",
+  album: "Álbum",
 };
 
 // ── Helpers ──
@@ -231,7 +231,7 @@ function HorizontalBars({
             );
           })}
           {sorted.length === 0 && (
-            <p className="text-sm text-zinc-600">Sem dados disponiveis</p>
+            <p className="text-sm text-zinc-600">Sem dados disponíveis</p>
           )}
         </div>
       </CardContent>
@@ -246,7 +246,7 @@ function EmptyState({ message }: { message: string }) {
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 bg-zinc-900/50 py-16 text-center">
       <Users className="mb-4 size-10 text-zinc-700" />
       <h3 className="text-base font-medium text-zinc-400">
-        Sem dados de audiencia
+        Sem dados de audiência
       </h3>
       <p className="mt-1 max-w-sm text-sm text-zinc-600">{message}</p>
     </div>
@@ -271,7 +271,7 @@ export function AudienceClient({
 }: AudienceClientProps) {
   if (!hasConnections) {
     return (
-      <EmptyState message="Conecte uma plataforma e colete metricas para ver dados de audiencia" />
+      <EmptyState message="Conecte uma plataforma e colete métricas para ver dados de audiência" />
     );
   }
 
@@ -282,7 +282,7 @@ export function AudienceClient({
     <div className="space-y-10">
       {/* ── Section 1: Overview Cards ── */}
       <MotionSection>
-        <h2 className="mb-4 text-lg font-semibold text-white">Visao Geral</h2>
+        <h2 className="mb-4 text-lg font-semibold text-white">Visão Geral</h2>
         <MotionStagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <MotionItem>
             <StatCard
@@ -327,7 +327,7 @@ export function AudienceClient({
           <MotionItem>
             <StatCard
               icon={<FileText className="size-4 text-zinc-400" />}
-              label="Conteudos Publicados"
+              label="Conteúdos Publicados"
               value={totalContentCount.toString()}
               detail="Total em todas as plataformas"
             />
@@ -335,9 +335,9 @@ export function AudienceClient({
         </MotionStagger>
       </MotionSection>
 
-      {/* ── Section 2: Publico por Plataforma ── */}
+      {/* ── Section 2: Público por Plataforma ── */}
       <MotionSection delay={0.1}>
-        <h2 className="mb-4 text-lg font-semibold text-white">Publico por Plataforma</h2>
+        <h2 className="mb-4 text-lg font-semibold text-white">Público por Plataforma</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {platformOrder.map((plat) => {
             const followers = platformFollowers[plat] ?? 0;
@@ -377,12 +377,12 @@ export function AudienceClient({
         </div>
       </MotionSection>
 
-      {/* ── Section 3: De Onde Vem Seu Publico (Countries) ── */}
+      {/* ── Section 3: De Onde Vem Seu Público (Countries) ── */}
       {topCountries && Object.keys(topCountries).length > 0 && (
         <MotionSection delay={0.15}>
-          <h2 className="mb-4 text-lg font-semibold text-white">De Onde Vem Seu Publico</h2>
+          <h2 className="mb-4 text-lg font-semibold text-white">De Onde Vem Seu Público</h2>
           <HorizontalBars
-            title="Paises por visualizacoes"
+            title="Países por visualizações"
             icon={<Globe className="size-4 text-zinc-500" />}
             data={topCountries}
             labelMap={COUNTRY_LABELS}
@@ -396,7 +396,7 @@ export function AudienceClient({
         <MotionSection delay={0.2}>
           <h2 className="mb-4 text-lg font-semibold text-white">Como Te Encontram</h2>
           <HorizontalBars
-            title="Fontes de trafego"
+            title="Fontes de tráfego"
             icon={<Radio className="size-4 text-zinc-500" />}
             data={trafficSources}
             labelMap={TRAFFIC_SOURCE_LABELS}
@@ -405,10 +405,10 @@ export function AudienceClient({
         </MotionSection>
       )}
 
-      {/* ── Section 5: Analise de Engajamento ── */}
+      {/* ── Section 5: Análise de Engajamento ── */}
       {Object.keys(engagementByPlatform).length > 0 && (
         <MotionSection delay={0.25}>
-          <h2 className="mb-4 text-lg font-semibold text-white">Analise de Engajamento</h2>
+          <h2 className="mb-4 text-lg font-semibold text-white">Análise de Engajamento</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(["INSTAGRAM", "YOUTUBE", "SPOTIFY"] as const).map((plat) => {
               const data = engagementByPlatform[plat];
@@ -429,7 +429,7 @@ export function AudienceClient({
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1.5 text-xs text-zinc-500">
                           <Eye className="size-3" />
-                          Media de views
+                          Média de views
                         </span>
                         <span className="text-sm font-medium text-white">
                           {formatNumber(data.avgViews)}
@@ -438,7 +438,7 @@ export function AudienceClient({
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1.5 text-xs text-zinc-500">
                           <Heart className="size-3" />
-                          Media de curtidas
+                          Média de curtidas
                         </span>
                         <span className="text-sm font-medium text-white">
                           {formatNumber(data.avgLikes)}
@@ -447,7 +447,7 @@ export function AudienceClient({
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1.5 text-xs text-zinc-500">
                           <MessageCircle className="size-3" />
-                          Media de comentarios
+                          Média de comentários
                         </span>
                         <span className="text-sm font-medium text-white">
                           {formatNumber(data.avgComments)}
@@ -465,7 +465,7 @@ export function AudienceClient({
                         </div>
                       </div>
                       <p className="text-xs text-zinc-600">
-                        Baseado em {data.contentCount} conteudo{data.contentCount !== 1 ? "s" : ""}
+                        Baseado em {data.contentCount} conteúdo{data.contentCount !== 1 ? "s" : ""}
                       </p>
                     </div>
                   </CardContent>
@@ -476,10 +476,10 @@ export function AudienceClient({
         </MotionSection>
       )}
 
-      {/* ── Section 6: Melhores Conteudos ── */}
+      {/* ── Section 6: Melhores Conteúdos ── */}
       {topContent.length > 0 && (
         <MotionSection delay={0.3}>
-          <h2 className="mb-4 text-lg font-semibold text-white">Melhores Conteudos</h2>
+          <h2 className="mb-4 text-lg font-semibold text-white">Melhores Conteúdos</h2>
           <Card className="border-zinc-800 bg-zinc-900">
             <CardContent className="pt-0">
               <div className="divide-y divide-zinc-800">
