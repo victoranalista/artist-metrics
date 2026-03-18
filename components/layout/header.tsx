@@ -22,7 +22,7 @@ function getPageInfo(pathname: string): { title: string; subtitle?: string } {
   const match = Object.keys(pageTitles).find((key) =>
     pathname.startsWith(key + "/")
   );
-  return match ? pageTitles[match] : { title: "ArtistMetrics" };
+  return match ? pageTitles[match] : { title: "DK Métricas" };
 }
 
 export function Header() {

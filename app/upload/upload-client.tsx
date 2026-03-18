@@ -90,7 +90,7 @@ export function UploadClient({ existingMetrics }: UploadClientProps) {
     if (comentarios) metricsData.comentarios = Number(comentarios);
 
     if (Object.keys(metricsData).length === 0) {
-      toast.error("Preencha pelo menos uma metrica");
+      toast.error("Preencha pelo menos uma métrica");
       return;
     }
 
@@ -103,7 +103,7 @@ export function UploadClient({ existingMetrics }: UploadClientProps) {
           notes: notes || undefined,
         });
 
-        toast.success("Metricas enviadas com sucesso!");
+        toast.success("Métricas enviadas com sucesso!");
 
         setMetrics((prev) => [
           {
@@ -119,7 +119,7 @@ export function UploadClient({ existingMetrics }: UploadClientProps) {
 
         resetForm();
       } catch {
-        toast.error("Erro ao enviar metricas. Tente novamente.");
+        toast.error("Erro ao enviar métricas. Tente novamente.");
       }
     });
   }
@@ -130,7 +130,7 @@ export function UploadClient({ existingMetrics }: UploadClientProps) {
       <div>
         <h1 className="text-2xl font-bold text-white">Upload Manual</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Adicione metricas manualmente para plataformas que nao possuem integracao automatica
+          Registre as métricas da Débora manualmente para plataformas que ainda não estão conectadas
         </p>
       </div>
 
@@ -139,10 +139,10 @@ export function UploadClient({ existingMetrics }: UploadClientProps) {
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-300">
             <Plus className="size-4 text-zinc-500" />
-            Adicionar Metricas
+            Adicionar Métricas
           </CardTitle>
           <CardDescription className="text-zinc-500">
-            Preencha os campos abaixo para registrar metricas manualmente
+            Preencha os campos abaixo para registrar métricas manualmente
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -223,7 +223,7 @@ export function UploadClient({ existingMetrics }: UploadClientProps) {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-zinc-400">
-                  Comentarios
+                  Comentários
                 </label>
                 <Input
                   type="number"
@@ -238,10 +238,10 @@ export function UploadClient({ existingMetrics }: UploadClientProps) {
             {/* Notes */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-400">
-                Observacoes (opcional)
+                Observações (opcional)
               </label>
               <Textarea
-                placeholder="Adicione notas ou contexto sobre essas metricas..."
+                placeholder="Adicione notas ou contexto sobre essas métricas..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="min-h-[80px] border-zinc-800 bg-zinc-800/50 text-white placeholder:text-zinc-700"
@@ -255,7 +255,7 @@ export function UploadClient({ existingMetrics }: UploadClientProps) {
               className="bg-zinc-100 text-zinc-900 hover:bg-white"
             >
               <Upload className="mr-2 size-4" />
-              {isPending ? "Enviando..." : "Enviar Metricas"}
+              {isPending ? "Enviando..." : "Enviar Métricas"}
             </Button>
           </CardFooter>
         </form>
@@ -266,10 +266,10 @@ export function UploadClient({ existingMetrics }: UploadClientProps) {
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-300">
             <FileSpreadsheet className="size-4 text-zinc-500" />
-            Historico de Uploads
+            Histórico de Uploads
           </CardTitle>
           <CardDescription className="text-zinc-500">
-            Metricas enviadas manualmente
+            Métricas enviadas manualmente
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -277,7 +277,7 @@ export function UploadClient({ existingMetrics }: UploadClientProps) {
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Calendar className="mb-3 size-10 text-zinc-700" />
               <p className="text-sm text-zinc-600">
-                Nenhuma metrica manual registrada ainda
+                Nenhuma métrica manual registrada ainda
               </p>
             </div>
           ) : (
@@ -290,8 +290,8 @@ export function UploadClient({ existingMetrics }: UploadClientProps) {
                     <TableHead className="text-zinc-500">Seguidores</TableHead>
                     <TableHead className="text-zinc-500">Views</TableHead>
                     <TableHead className="text-zinc-500">Likes</TableHead>
-                    <TableHead className="text-zinc-500">Comentarios</TableHead>
-                    <TableHead className="text-zinc-500">Observacoes</TableHead>
+                    <TableHead className="text-zinc-500">Comentários</TableHead>
+                    <TableHead className="text-zinc-500">Observações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

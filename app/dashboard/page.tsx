@@ -190,7 +190,7 @@ export default async function DashboardPage() {
 
       {/* Hero stat — most impressive number */}
       <MotionSection delay={0.2}>
-        <HeroStat value={totalViews} label="visualizações totais" />
+        <HeroStat value={totalViews} label="visualizações totais de Débora" />
       </MotionSection>
 
       {/* Chart + Recent content */}

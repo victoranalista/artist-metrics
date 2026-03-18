@@ -25,10 +25,10 @@ export default async function UploadPage() {
               UPLOAD
             </p>
             <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-              Registre suas metricas
+              Registre suas métricas
             </h1>
             <p className="max-w-md text-base leading-relaxed text-zinc-400">
-              Adicione dados manualmente de plataformas que nao estao conectadas. Mantenha tudo centralizado.
+              Registre métricas manualmente de plataformas que ainda não estão conectadas ao seu painel.
             </p>
           </div>
           <div className="relative overflow-hidden rounded-xl">

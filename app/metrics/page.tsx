@@ -38,13 +38,13 @@ export default async function MetricsPage() {
         <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-2 md:gap-12">
           <div className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-              METRICAS
+              MÉTRICAS
             </p>
             <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
               Acompanhe seu crescimento
             </h1>
             <p className="max-w-md text-base leading-relaxed text-zinc-400">
-              Visualize o desempenho da sua musica em todas as plataformas. Analise tendencias, identifique padroes e tome decisoes baseadas em dados.
+              Visualize o desempenho da sua música em todas as plataformas, Débora. Analise tendências e tome decisões baseadas em dados reais.
             </p>
           </div>
           <div className="relative overflow-hidden rounded-xl">

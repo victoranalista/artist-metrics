@@ -19,7 +19,7 @@ export default async function ChatPage() {
               Sua equipe de marketing
             </h1>
             <p className="max-w-md text-base leading-relaxed text-zinc-400">
-              Analises, estrategias e planos de acao personalizados para sua carreira musical. Pesquisa dados reais e monta acoes concretas.
+              Sua equipe de marketing dedicada. Análises, estratégias e planos de ação personalizados para sua carreira, Débora.
             </p>
           </div>
           <div className="relative overflow-hidden rounded-xl">

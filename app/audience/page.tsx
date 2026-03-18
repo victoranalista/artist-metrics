@@ -112,13 +112,13 @@ export default async function AudiencePage() {
         <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-2 md:gap-12">
           <div className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-              AUDIENCIA
+              AUDIÊNCIA
             </p>
             <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-              Quem ouve sua musica
+              Quem ouve sua música
             </h1>
             <p className="max-w-md text-base leading-relaxed text-zinc-400">
-              Entenda seu publico: de onde sao, qual a faixa etaria, como encontram voce. Dados essenciais para sua estrategia.
+              Entenda quem ouve sua música e de onde vem seu público. Dados essenciais para direcionar sua estratégia.
             </p>
           </div>
           <div className="relative overflow-hidden rounded-xl">

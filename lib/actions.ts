@@ -295,7 +295,7 @@ export async function connectByProfile(platform: string, profileInput: string) {
       };
     }
 
-    return { error: `Plataforma "${platform}" nao suportada para conexao por perfil.` };
+    return { error: `Plataforma "${platform}" não suportada para conexão por perfil.` };
   } catch (err) {
     console.error(`connectByProfile(${platform}) failed:`, err);
     return {

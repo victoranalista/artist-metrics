@@ -67,7 +67,7 @@ export function Sidebar() {
                 transition={{ duration: 0.15 }}
                 className="overflow-hidden whitespace-nowrap text-sm font-semibold tracking-tight text-zinc-100"
               >
-                ArtistMetrics
+                DK Métricas
               </motion.span>
             )}
           </AnimatePresence>
@@ -149,10 +149,10 @@ export function Sidebar() {
                 className="min-w-0 overflow-hidden"
               >
                 <p className="truncate text-sm font-medium text-zinc-200">
-                  Debora Kailany
+                  Débora Kailany
                 </p>
                 <p className="truncate text-xs text-zinc-500">
-                  Artista Gospel
+                  Artista Gospel · Brasília/DF
                 </p>
               </motion.div>
             )}

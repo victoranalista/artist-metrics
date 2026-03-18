@@ -11,9 +11,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "ArtistMetrics - Monitoramento de Métricas para Artistas",
+  title: "Débora Kailany — Painel de Métricas",
   description:
-    "Plataforma completa para monitoramento e análise de métricas de artistas musicais. Acompanhe streams, audiência e desempenho em tempo real.",
+    "Painel exclusivo de métricas e marketing musical de Débora Kailany. Acompanhe streams, audiência e desempenho em tempo real.",
 };
 
 export default function RootLayout({

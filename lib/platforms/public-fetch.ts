@@ -1,5 +1,5 @@
 // ── Public Data Fetching (sem OAuth) ──
-// Busca dados publicos de plataformas usando API keys ou Client Credentials.
+// Busca dados públicos de plataformas usando API keys ou Client Credentials.
 
 // ────────────────────────────────────────
 // YouTube - Public Data API v3
@@ -58,7 +58,7 @@ export async function fetchYouTubePublicData(
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) {
     throw new Error(
-      "YOUTUBE_API_KEY nao configurada. Adicione a chave da API do YouTube nas variaveis de ambiente."
+      "YOUTUBE_API_KEY não configurada. Adicione a chave da API do YouTube nas variáveis de ambiente."
     );
   }
 
@@ -77,7 +77,7 @@ export async function fetchYouTubePublicData(
 
   if (!channelData.items || channelData.items.length === 0) {
     throw new Error(
-      "Canal do YouTube nao encontrado. Verifique a URL, @handle ou ID do canal."
+      "Canal do YouTube não encontrado. Verifique a URL, @handle ou ID do canal."
     );
   }
 
@@ -234,7 +234,7 @@ export async function fetchSpotifyPublicData(
       searchData.artists.items.length === 0
     ) {
       throw new Error(
-        `Artista "${parsed.value}" nao encontrado no Spotify. Tente usar o link do perfil.`
+        `Artista "${parsed.value}" não encontrado no Spotify. Tente usar o link do perfil.`
       );
     }
 
@@ -249,7 +249,7 @@ export async function fetchSpotifyPublicData(
 
   if (!artistRes.ok) {
     throw new Error(
-      "Artista nao encontrado no Spotify. Verifique o link ou nome."
+      "Artista não encontrado no Spotify. Verifique o link ou nome."
     );
   }
 
@@ -320,6 +320,6 @@ export async function fetchInstagramPublicData(
 ): Promise<InstagramPublicData> {
   return {
     error:
-      "Instagram requer conta Business/Creator vinculada a uma Pagina do Facebook. Configure o OAuth na pagina de Conexoes para acessar metricas do Instagram.",
+      "Instagram requer conta Business/Creator vinculada a uma Página do Facebook. Configure o OAuth na página de Conexões para acessar métricas do Instagram.",
   };
 }

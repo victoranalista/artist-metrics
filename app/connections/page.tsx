@@ -13,13 +13,13 @@ export default async function ConnectionsPage() {
         <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-2 md:gap-12">
           <div className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-              CONEXOES
+              CONEXÕES
             </p>
             <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
               Suas plataformas
             </h1>
             <p className="max-w-md text-base leading-relaxed text-zinc-400">
-              Conecte YouTube, Instagram e Spotify para coletar suas metricas automaticamente.
+              Conecte suas contas do YouTube, Instagram e Spotify para coletar métricas automaticamente.
             </p>
           </div>
           <div className="relative overflow-hidden rounded-xl">

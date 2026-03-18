@@ -67,7 +67,7 @@ const PLATFORMS = [
     label: "Instagram",
     icon: Instagram,
     authUrl: "/api/auth/instagram",
-    placeholder: "Nome de usuario do Instagram",
+    placeholder: "Nome de usuário do Instagram",
   },
   {
     key: "SPOTIFY",
@@ -171,7 +171,7 @@ export function ConnectionsClient({ connections }: ConnectionsClientProps) {
           }
         }
       } catch {
-        toast.error("Erro ao coletar metricas");
+        toast.error("Erro ao coletar métricas");
       }
     });
   }
@@ -239,9 +239,9 @@ export function ConnectionsClient({ connections }: ConnectionsClientProps) {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Conexoes</h1>
+          <h1 className="text-2xl font-bold text-white">Conexões</h1>
           <p className="mt-1 text-sm text-zinc-400">
-            Gerencie suas plataformas conectadas
+            Conecte as contas da Débora para coletar métricas
           </p>
         </div>
 
@@ -255,7 +255,7 @@ export function ConnectionsClient({ connections }: ConnectionsClientProps) {
           ) : (
             <RefreshCw className="mr-2 size-4" />
           )}
-          Atualizar Metricas
+          Atualizar Métricas
         </Button>
       </div>
 
@@ -330,7 +330,7 @@ export function ConnectionsClient({ connections }: ConnectionsClientProps) {
                       </div>
                       <p className="text-xs text-zinc-600">
                         Cole a URL ou digite o nome do perfil para buscar dados
-                        publicos.
+                        públicos.
                       </p>
                       <div className="flex gap-2">
                         <Input
@@ -398,7 +398,7 @@ export function ConnectionsClient({ connections }: ConnectionsClientProps) {
                                     {fmtNumber(
                                       result.totalViews as number | null
                                     )}{" "}
-                                    visualizacoes
+                                    visualizações
                                   </p>
                                 )}
                                 {result.popularity != null && (
@@ -410,7 +410,7 @@ export function ConnectionsClient({ connections }: ConnectionsClientProps) {
                                 {Array.isArray(result.genres) &&
                                   result.genres.length > 0 && (
                                     <p className="text-zinc-400">
-                                      Generos:{" "}
+                                      Gêneros:{" "}
                                       {(result.genres as string[]).join(", ")}
                                     </p>
                                   )}
@@ -435,15 +435,15 @@ export function ConnectionsClient({ connections }: ConnectionsClientProps) {
                         }
                         className="flex w-full items-center justify-between text-xs text-zinc-600 hover:text-zinc-400"
                       >
-                        <span>Conexao Avancada (OAuth)</span>
+                        <span>Conexão Avançada (OAuth)</span>
                         <span>{showOAuth[platform.key] ? "-" : "+"}</span>
                       </button>
 
                       {showOAuth[platform.key] && (
                         <div className="space-y-2">
                           <p className="text-xs text-zinc-700">
-                            Acesso completo via autorizacao OAuth. Necessario
-                            para metricas detalhadas e dados privados.
+                            Acesso completo via autorização OAuth. Necessário
+                            para métricas detalhadas e dados privados.
                           </p>
                           <a
                             href={platform.authUrl}
@@ -477,8 +477,8 @@ export function ConnectionsClient({ connections }: ConnectionsClientProps) {
             </DialogTitle>
             <DialogDescription className="text-zinc-400">
               Tem certeza que deseja desconectar{" "}
-              {platformNames[disconnectTarget ?? ""] ?? disconnectTarget}? Voce
-              precisara reconectar para continuar coletando metricas.
+              {platformNames[disconnectTarget ?? ""] ?? disconnectTarget}? Você
+              precisará reconectar para continuar coletando métricas.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

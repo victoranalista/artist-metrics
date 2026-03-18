@@ -189,9 +189,9 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Analise de Metricas</h1>
+        <h1 className="text-2xl font-bold text-white">Análise de Métricas</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Acompanhe a evolucao detalhada das suas metricas por plataforma
+          Acompanhe a evolução detalhada das suas métricas por plataforma
         </p>
       </div>
 
@@ -243,10 +243,10 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 bg-zinc-900/50 py-16 text-center">
           <BarChart3 className="mb-4 size-10 text-zinc-700" />
           <h3 className="text-base font-medium text-zinc-400">
-            Sem dados de metricas
+            Sem dados de métricas
           </h3>
           <p className="mt-1 max-w-sm text-sm text-zinc-600">
-            Conecte uma plataforma e colete metricas para acompanhar a evolucao
+            Conecte uma plataforma e colete métricas para acompanhar a evolução
           </p>
         </div>
       ) : (
@@ -289,7 +289,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-zinc-500">Visualizacoes</p>
+                        <p className="text-xs text-zinc-500">Visualizações</p>
                         <p className="text-xl font-bold text-white">
                           {formatNumber(snapshot.totalViews)}
                         </p>
@@ -302,7 +302,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                       </span>
                       <span className="flex items-center gap-1">
                         <MessageSquare className="size-3" />
-                        {formatNumber(snapshot.totalComments)} comentarios
+                        {formatNumber(snapshot.totalComments)} comentários
                       </span>
                     </div>
                   </CardContent>
@@ -320,13 +320,13 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                   Seguidores ao Longo do Tempo
                 </CardTitle>
                 <CardDescription className="text-zinc-500">
-                  Evolucao do numero de seguidores por plataforma
+                  Evolução do número de seguidores por plataforma
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {followersChartData.length === 0 ? (
                   <div className="flex h-[280px] items-center justify-center text-sm text-zinc-600">
-                    Nenhum dado disponivel para o periodo selecionado
+                    Nenhum dado disponível para o período selecionado
                   </div>
                 ) : (
                   <div className="h-[280px] w-full">
@@ -394,13 +394,13 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                   Engajamento por Plataforma
                 </CardTitle>
                 <CardDescription className="text-zinc-500">
-                  Curtidas + comentarios ao longo do tempo
+                  Curtidas + comentários ao longo do tempo
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {engagementChartData.length === 0 ? (
                   <div className="flex h-[280px] items-center justify-center text-sm text-zinc-600">
-                    Nenhum dado disponivel para o periodo selecionado
+                    Nenhum dado disponível para o período selecionado
                   </div>
                 ) : (
                   <div className="h-[280px] w-full">

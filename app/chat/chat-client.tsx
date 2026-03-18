@@ -49,23 +49,23 @@ interface ChatClientProps {
 const suggestedPrompts = [
   {
     icon: Music,
-    label: "Analise minha presenca digital",
-    prompt: "Pesquise sobre minha presenca digital em todas as plataformas e me de um diagnostico completo",
+    label: "Analise minha presença digital",
+    prompt: "Pesquise sobre a presença digital da Débora Kailany em todas as plataformas e me dê um diagnóstico completo",
   },
   {
     icon: TrendingUp,
     label: "Plano de crescimento",
-    prompt: "Monte um plano de crescimento para os proximos 30 dias com acoes semanais",
+    prompt: "Monte um plano de crescimento para a Débora Kailany nos próximos 30 dias com ações semanais",
   },
   {
     icon: Target,
-    label: "Estrategia de lancamento",
-    prompt: "Crie uma estrategia completa de lancamento de musica com cronograma de pre-save ate pos-lancamento",
+    label: "Estratégia de lançamento",
+    prompt: "Crie uma estratégia completa de lançamento de música para a Débora Kailany com cronograma de pré-save até pós-lançamento",
   },
   {
     icon: Lightbulb,
-    label: "Ideias de conteudo",
-    prompt: "Me de 10 ideias de conteudo para Reels e TikTok que podem viralizar no meu nicho",
+    label: "Ideias de conteúdo",
+    prompt: "Me dê 10 ideias de conteúdo para os Reels e TikTok da Débora Kailany que podem viralizar no nicho gospel",
   },
 ];
 
@@ -272,11 +272,11 @@ export function ChatClient({ initialMessages }: ChatClientProps) {
           </div>
           <div>
             <h1 className="text-lg font-semibold text-zinc-100">
-              Diretor de Marketing
+              Sua Equipe de Marketing
             </h1>
             <div className="flex items-center gap-1.5">
               <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-              <p className="text-xs text-zinc-500">Online - Equipe completa disponivel</p>
+              <p className="text-xs text-zinc-500">Online — Dedicada à Débora Kailany</p>
             </div>
           </div>
         </div>
@@ -311,12 +311,10 @@ export function ChatClient({ initialMessages }: ChatClientProps) {
             </motion.div>
             <div className="max-w-lg space-y-2 text-center">
               <h2 className="text-xl font-semibold text-zinc-100">
-                Sua equipe de marketing esta pronta
+                Débora, sua equipe de marketing está pronta
               </h2>
               <p className="text-sm leading-relaxed text-zinc-400">
-                Diretor de marketing, social media, analista de dados, estrategista
-                de conteudo e especialista em Spotify. Tudo em um so lugar. Pesquiso
-                dados reais, analiso seus posts e monto planos de acao sob medida.
+                Somos seu time dedicado: diretor de marketing, social media, analista de dados, estrategista de conteúdo e especialista em Spotify. Pesquisamos dados reais sobre você, analisamos seus posts e montamos planos de ação sob medida para sua carreira.
               </p>
             </div>
 
@@ -420,7 +418,7 @@ export function ChatClient({ initialMessages }: ChatClientProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Pergunte sobre seu artista, metricas, estrategias..."
+            placeholder="Pergunte sobre as métricas da Débora, estratégias, planos..."
             disabled={isSending}
             className="min-h-[48px] max-h-32 resize-none rounded-xl border-white/5 bg-zinc-900/80 pr-12 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-violet-500/30"
             rows={1}
@@ -446,7 +444,7 @@ export function ChatClient({ initialMessages }: ChatClientProps) {
           <DialogHeader>
             <DialogTitle>Limpar conversa</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja apagar todo o historico? Esta acao nao pode ser desfeita.
+              Tem certeza que deseja apagar todo o histórico? Esta ação não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

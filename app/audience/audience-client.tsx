@@ -59,27 +59,27 @@ const GENDER_LABELS: Record<string, string> = {
 const TRAFFIC_SOURCE_LABELS: Record<string, string> = {
   SEARCH: "Pesquisa",
   SUGGESTED: "Sugeridos",
-  BROWSE_FEATURES: "Navegacao",
+  BROWSE_FEATURES: "Navegação",
   EXT_URL: "URL Externa",
   EXTERNAL: "Externo",
-  NOTIFICATION: "Notificacao",
+  NOTIFICATION: "Notificação",
   PLAYLIST: "Playlist",
   SHORTS: "Shorts",
-  RELATED_VIDEO: "Videos Relacionados",
+  RELATED_VIDEO: "Vídeos Relacionados",
   YT_SEARCH: "Pesquisa YouTube",
   SUBSCRIBER: "Inscritos",
-  YT_CHANNEL: "Pagina do Canal",
+  YT_CHANNEL: "Página do Canal",
   ADVERTISING: "Publicidade",
   NO_LINK_EMBEDDED: "Incorporado",
   NO_LINK_OTHER: "Outro",
   END_SCREEN: "Tela Final",
-  ANNOTATION: "Anotacao",
-  CAMPAIGN_CARD: "Cartao de Campanha",
+  ANNOTATION: "Anotação",
+  CAMPAIGN_CARD: "Cartão de Campanha",
   HASHTAGS: "Hashtags",
   LIVE_REDIRECT: "Redirect ao Vivo",
   PROMOTED: "Promovido",
-  YT_OTHER_PAGE: "Outra Pagina YT",
-  YT_PLAYLIST_PAGE: "Pagina Playlist",
+  YT_OTHER_PAGE: "Outra Página YT",
+  YT_PLAYLIST_PAGE: "Página Playlist",
   VIDEO_REMIXES: "Remixes",
 };
 
@@ -121,7 +121,7 @@ function GenderChart({ genderSplit }: { genderSplit: Record<string, number> }) {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-300">
           <Users className="size-4 text-zinc-500" />
-          Distribuicao por Genero
+          Distribuição por Gênero
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -186,7 +186,7 @@ function AgeBarChart({ ageRanges }: { ageRanges: Record<string, number> }) {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-300">
           <BarChart3 className="size-4 text-zinc-500" />
-          Faixa Etaria
+          Faixa Etária
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -287,7 +287,7 @@ function HorizontalBarSection({
             );
           })}
           {sorted.length === 0 && (
-            <p className="text-sm text-zinc-600">Sem dados disponiveis</p>
+            <p className="text-sm text-zinc-600">Sem dados disponíveis</p>
           )}
         </div>
       </CardContent>
@@ -300,7 +300,7 @@ function EmptyState({ message }: { message: string }) {
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 bg-zinc-900/50 py-16 text-center">
       <Users className="mb-4 size-10 text-zinc-700" />
       <h3 className="text-base font-medium text-zinc-400">
-        Sem dados de audiencia
+        Sem dados de audiência
       </h3>
       <p className="mt-1 max-w-sm text-sm text-zinc-600">{message}</p>
     </div>
@@ -319,12 +319,12 @@ export function AudienceClient({
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Audiencia</h1>
+          <h1 className="text-2xl font-bold text-white">Audiência</h1>
           <p className="mt-1 text-sm text-zinc-400">
-            Dados demograficos e distribuicao do seu publico por plataforma
+            Dados demográficos e distribuição do seu público por plataforma
           </p>
         </div>
-        <EmptyState message="Conecte uma plataforma e colete metricas para ver dados de audiencia" />
+        <EmptyState message="Conecte uma plataforma e colete métricas para ver dados de audiência" />
       </div>
     );
   }
@@ -335,9 +335,9 @@ export function AudienceClient({
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Audiencia</h1>
+        <h1 className="text-2xl font-bold text-white">Audiência</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Dados demograficos e distribuicao do seu publico por plataforma
+          Dados demográficos e distribuição do seu público por plataforma
         </p>
       </div>
 
@@ -381,7 +381,7 @@ function PlatformAudienceContent({ data }: { data: AudienceInfo | null }) {
 
   if (!hasData) {
     return (
-      <EmptyState message="Colete metricas desta plataforma para ver dados de audiencia" />
+      <EmptyState message="Colete métricas desta plataforma para ver dados de audiência" />
     );
   }
 
@@ -399,7 +399,7 @@ function PlatformAudienceContent({ data }: { data: AudienceInfo | null }) {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {data.topCountries && (
           <HorizontalBarSection
-            title="Principais Paises"
+            title="Principais Países"
             icon={<Globe className="size-4 text-zinc-500" />}
             data={data.topCountries}
             formatValue={(v) => v.toLocaleString("pt-BR")}
@@ -417,7 +417,7 @@ function PlatformAudienceContent({ data }: { data: AudienceInfo | null }) {
 
         {data.trafficSources && (
           <HorizontalBarSection
-            title="Fontes de Trafego"
+            title="Fontes de Tráfego"
             icon={<Radio className="size-4 text-zinc-500" />}
             data={data.trafficSources}
             labelMap={TRAFFIC_SOURCE_LABELS}

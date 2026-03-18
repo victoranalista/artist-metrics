@@ -100,7 +100,7 @@ export function GrowthChart({ data }: GrowthChartProps) {
             Crescimento
           </CardTitle>
           <CardDescription className="text-xs text-zinc-500">
-            {metric === "followers" ? "Inscritos" : "Visualizacoes"} ao longo do tempo
+            {metric === "followers" ? "Inscritos" : "Visualizações"} ao longo do tempo
           </CardDescription>
         </div>
         <div className="flex items-center gap-1.5">
@@ -142,7 +142,7 @@ export function GrowthChart({ data }: GrowthChartProps) {
         {filteredData.length === 0 ? (
           <div className="flex h-[250px] items-center justify-center">
             <p className="text-sm text-zinc-500">
-              Sem dados para o periodo selecionado
+              Sem dados para o período selecionado
             </p>
           </div>
         ) : (
