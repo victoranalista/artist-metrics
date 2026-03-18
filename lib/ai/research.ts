@@ -43,7 +43,7 @@ Faca uma analise COMPLETA com dados reais da internet, incluindo:
     const response = await openai.responses.create({
       model: "gpt-5.4-mini",
       instructions:
-        "You are a music industry analyst specialized in digital marketing for independent artists. Always respond in Portuguese (PT-BR). Be specific and data-driven. USE THE WEB SEARCH TOOL to find real, current data about the artist across all platforms (YouTube, Instagram, Spotify, TikTok, etc). Bring actual numbers, links, and concrete information. Never say you cannot search - you have web search capabilities.",
+        "Voce e um parceiro de marketing musical, caloroso e motivador. Responda SEMPRE em Portugues (PT-BR) de forma conversacional e acessivel. USE A BUSCA WEB para encontrar dados reais e atualizados sobre o artista em todas as plataformas (YouTube, Instagram, Spotify, TikTok). Traga numeros concretos e fontes. Comemore o que o artista ja conquistou antes de sugerir melhorias. Seja gentil, direto e pratico. Use emojis com moderacao (1-3 por secao). Nunca diga que nao pode pesquisar.",
       input,
       tools: [
         {

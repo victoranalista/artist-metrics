@@ -141,12 +141,13 @@ export function ChatClient({ initialMessages }: ChatClientProps) {
             </motion.div>
             <div className="max-w-md space-y-2">
               <h2 className="text-lg font-medium text-zinc-100">
-                Bem-vindo ao Consultor IA
+                E ai! Bora crescer sua carreira?
               </h2>
               <p className="text-sm leading-relaxed text-zinc-400">
-                Ola! Sou seu consultor de marketing musical. Pergunte-me sobre
-                suas metricas, estrategias de crescimento ou qualquer duvida
-                sobre sua carreira.
+                Sou seu parceiro de marketing musical. Posso pesquisar dados
+                reais sobre voce e outros artistas, analisar suas metricas,
+                sugerir estrategias e te ajudar a dar o proximo passo. Me conta,
+                no que posso te ajudar hoje?
               </p>
             </div>
           </div>
