@@ -3,6 +3,7 @@
 import { Eye, Heart, Inbox } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
+import { MotionStagger, MotionItem } from "@/components/ui/motion-section";
 
 interface ContentItem {
   id: string;
@@ -46,37 +47,36 @@ export function RecentActivity({ items }: RecentActivityProps) {
             </p>
           </div>
         ) : (
-          <div className="space-y-0.5">
+          <MotionStagger className="space-y-0.5">
             {items.map((content) => (
-              <div
-                key={content.id}
-                className="flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-white/[0.03]"
-              >
-                {/* Title and metadata */}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-zinc-200">
-                    {content.title || "Sem título"}
-                  </p>
-                  <p className="mt-0.5 text-xs text-zinc-500">
-                    {platformNames[content.platform] || content.platform}
-                    {content.date ? ` · ${content.date}` : ""}
-                  </p>
-                </div>
+              <MotionItem key={content.id}>
+                <div className="flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-white/[0.03]">
+                  {/* Title and metadata */}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-zinc-200">
+                      {content.title || "Sem título"}
+                    </p>
+                    <p className="mt-0.5 text-xs text-zinc-500">
+                      {platformNames[content.platform] || content.platform}
+                      {content.date ? ` · ${content.date}` : ""}
+                    </p>
+                  </div>
 
-                {/* Stats */}
-                <div className="flex shrink-0 items-center gap-3 text-xs text-zinc-400">
-                  <span className="flex items-center gap-1">
-                    <Eye className="size-3 text-zinc-600" />
-                    {formatNumber(content.views || 0)}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Heart className="size-3 text-zinc-600" />
-                    {formatNumber(content.likes || 0)}
-                  </span>
+                  {/* Stats */}
+                  <div className="flex shrink-0 items-center gap-3 text-xs text-zinc-400">
+                    <span className="flex items-center gap-1">
+                      <Eye className="size-3 text-zinc-600" />
+                      {formatNumber(content.views || 0)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Heart className="size-3 text-zinc-600" />
+                      {formatNumber(content.likes || 0)}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              </MotionItem>
             ))}
-          </div>
+          </MotionStagger>
         )}
       </CardContent>
     </Card>

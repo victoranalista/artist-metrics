@@ -3,6 +3,8 @@ import { OverviewCards } from "@/components/dashboard/overview-cards";
 import { GrowthChart } from "@/components/dashboard/growth-chart";
 import { PlatformComparison } from "@/components/dashboard/platform-comparison";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
+import { HeroStat } from "@/components/dashboard/hero-stat";
+import { MotionSection } from "@/components/ui/motion-section";
 
 export const dynamic = "force-dynamic";
 
@@ -148,35 +150,48 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {/* Welcome header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-white">
-          Bem-vindo, {artist.name}
-        </h1>
-        <p className="mt-1 text-sm text-zinc-400 capitalize">{dateStr}</p>
-      </div>
+      <MotionSection delay={0}>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-white">
+            Bem-vindo, {artist.name}
+          </h1>
+          <p className="mt-1 text-sm text-zinc-400 capitalize">{dateStr}</p>
+        </div>
+      </MotionSection>
 
       {/* KPI cards */}
-      <OverviewCards data={overviewData} />
+      <MotionSection delay={0.1}>
+        <OverviewCards data={overviewData} />
+      </MotionSection>
+
+      {/* Hero stat — most impressive number */}
+      <MotionSection delay={0.2}>
+        <HeroStat value={totalViews} label="visualizações totais" />
+      </MotionSection>
 
       {/* Chart + Recent content */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <GrowthChart data={chartData} />
+      <MotionSection delay={0.2}>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <GrowthChart data={chartData} />
+          </div>
+          <div>
+            <RecentActivity items={recentContent} />
+          </div>
         </div>
-        <div>
-          <RecentActivity items={recentContent} />
-        </div>
-      </div>
+      </MotionSection>
 
       {/* Platform comparison */}
-      <div>
-        <h2 className="mb-4 text-base font-semibold text-white">
-          Comparativo de Plataformas
-        </h2>
-        <PlatformComparison data={platformData} />
-      </div>
+      <MotionSection delay={0.3}>
+        <div>
+          <h2 className="mb-4 text-base font-semibold text-white">
+            Comparativo de Plataformas
+          </h2>
+          <PlatformComparison data={platformData} />
+        </div>
+      </MotionSection>
     </div>
   );
 }
