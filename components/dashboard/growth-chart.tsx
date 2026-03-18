@@ -52,7 +52,7 @@ const periods = [
 
 const metrics = [
   { value: "followers", label: "Inscritos" },
-  { value: "views", label: "Views" },
+  { value: "views", label: "Views Diárias" },
 ];
 
 export function GrowthChart({ data }: GrowthChartProps) {
@@ -220,7 +220,7 @@ export function GrowthChart({ data }: GrowthChartProps) {
                 <Area
                   key={platform}
                   dataKey={platform}
-                  type="natural"
+                  type="monotone"
                   fill={`url(#fill-${platform})`}
                   stroke={`var(--color-${platform})`}
                   stackId="a"

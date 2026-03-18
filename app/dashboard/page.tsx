@@ -97,13 +97,21 @@ export default async function DashboardPage() {
     subsGained,
   };
 
-  // Build chart data from snapshots
-  const chartData = snapshots.map((s) => ({
-    date: s.date.toISOString().split("T")[0],
-    platform: s.platform,
-    followers: s.followers || 0,
-    views: s.totalViews || 0,
-  }));
+  // Build chart data from snapshots — usar dados diários, não cumulativos
+  const chartData = snapshots.map((s) => {
+    const pd = (s.platformData ?? {}) as Record<string, unknown>;
+    // Dados diários: YouTube=dailyViews, Instagram=alcance(totalViews), Spotify=dailyStreams
+    const dailyViews =
+      (pd.dailyViews as number) ??
+      (pd.dailyStreams as number) ??
+      (s.platform === "INSTAGRAM" ? s.totalViews : null);
+    return {
+      date: s.date.toISOString().split("T")[0],
+      platform: s.platform,
+      followers: s.followers || 0,
+      views: dailyViews ?? 0,
+    };
+  });
 
   // Recent content items sorted by views
   const recentContent = snapshots

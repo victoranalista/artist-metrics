@@ -16,19 +16,21 @@ interface MiniSparklineProps {
 }
 
 function generateSparklineData(value: number, trend: number): { v: number }[] {
-  const points = 8;
+  const points = 14;
   const data: { v: number }[] = [];
-  // Walk backwards from the current value, applying the trend direction
-  // so the sparkline visually trends up or down toward the final point.
-  const trendDirection = trend >= 0 ? 1 : -1;
-  const base = Math.max(value * 0.7, 1);
-  const range = Math.max(value * 0.3, 1);
+  const dir = trend >= 0 ? 1 : -1;
+  const base = Math.max(value * 0.65, 1);
+  const range = Math.max(value * 0.35, 1);
 
   for (let i = 0; i < points; i++) {
-    const progress = i / (points - 1); // 0 → 1
-    const trendComponent = trendDirection * progress * range;
-    // Add a small amount of noise so it doesn't look perfectly linear
-    const noise = (Math.sin(i * 2.7 + value * 0.001) * 0.15 + Math.cos(i * 1.3) * 0.1) * range;
+    const progress = i / (points - 1);
+    const trendComponent = dir * progress * range;
+    // Multiple sine waves for organic feel
+    const noise = (
+      Math.sin(i * 1.8 + value * 0.0017) * 0.18 +
+      Math.sin(i * 3.1 + value * 0.003) * 0.12 +
+      Math.cos(i * 0.7 + value * 0.002) * 0.08
+    ) * range;
     data.push({ v: Math.max(0, base + trendComponent + noise) });
   }
 
@@ -58,7 +60,7 @@ function MiniSparkline({ value, trend, color }: MiniSparklineProps) {
             </linearGradient>
           </defs>
           <Area
-            type="monotone"
+            type="basis"
             dataKey="v"
             stroke={c}
             strokeWidth={1.5}
