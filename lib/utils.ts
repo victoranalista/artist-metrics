@@ -31,4 +31,5 @@ export const platformNames: Record<string, string> = {
   YOUTUBE: "YouTube",
   INSTAGRAM: "Instagram",
   SPOTIFY: "Spotify",
+  TIKTOK: "TikTok",
 };

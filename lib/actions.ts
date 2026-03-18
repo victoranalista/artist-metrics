@@ -4,6 +4,7 @@ import { prisma, ARTIST_ID } from "@/lib/db";
 import { collectYouTubeMetrics } from "@/lib/platforms/youtube";
 import { collectInstagramMetrics } from "@/lib/platforms/instagram";
 import { collectSpotifyMetrics } from "@/lib/platforms/spotify";
+import { collectTikTokMetrics } from "@/lib/platforms/tiktok";
 import {
   fetchYouTubePublicData,
   fetchSpotifyPublicData,
@@ -70,9 +71,13 @@ export async function disconnectPlatform(platform: string) {
 // ── Connect by Profile (Public API) ──
 
 export async function connectByProfile(platform: string, profileInput: string) {
-  const platformKey = platform.toUpperCase() as "YOUTUBE" | "INSTAGRAM" | "SPOTIFY";
+  const platformKey = platform.toUpperCase() as "YOUTUBE" | "INSTAGRAM" | "SPOTIFY" | "TIKTOK";
 
   try {
+    if (platformKey === "TIKTOK") {
+      return { error: "TikTok não oferece API pública. Use o botão 'Conectar TikTok' para autenticar via OAuth." };
+    }
+
     if (platformKey === "INSTAGRAM") {
       const result = await fetchInstagramPublicData(profileInput);
       return { error: result.error };
@@ -310,7 +315,7 @@ export async function connectByProfile(platform: string, profileInput: string) {
 // ── Metrics ──
 
 export async function getLatestSnapshots() {
-  const platforms = ["YOUTUBE", "INSTAGRAM", "SPOTIFY"] as const;
+  const platforms = ["YOUTUBE", "INSTAGRAM", "SPOTIFY", "TIKTOK"] as const;
   const snapshots = [];
 
   for (const platform of platforms) {
@@ -406,6 +411,7 @@ const collectors: Record<
   YOUTUBE: collectYouTubeMetrics,
   INSTAGRAM: collectInstagramMetrics,
   SPOTIFY: collectSpotifyMetrics,
+  TIKTOK: collectTikTokMetrics,
 };
 
 export async function collectAllMetrics() {

@@ -61,6 +61,7 @@ const PLATFORMS = [
     icon: Youtube,
     authUrl: "/api/auth/youtube",
     placeholder: "Cole a URL do canal, @handle ou ID (ex: @MeuCanal)",
+    oauthOnly: false,
   },
   {
     key: "INSTAGRAM",
@@ -68,6 +69,7 @@ const PLATFORMS = [
     icon: Instagram,
     authUrl: "/api/auth/instagram",
     placeholder: "Nome de usuário do Instagram",
+    oauthOnly: false,
   },
   {
     key: "SPOTIFY",
@@ -75,6 +77,15 @@ const PLATFORMS = [
     icon: Music2,
     authUrl: "/api/auth/spotify",
     placeholder: "Cole o link do Spotify ou nome do artista",
+    oauthOnly: false,
+  },
+  {
+    key: "TIKTOK",
+    label: "TikTok",
+    icon: Music2,
+    authUrl: "/api/auth/tiktok",
+    placeholder: "Conecte via OAuth (login com TikTok)",
+    oauthOnly: true,
   },
 ] as const;
 
@@ -319,6 +330,19 @@ export function ConnectionsClient({ connections }: ConnectionsClientProps) {
                       <Unplug className="mr-2 size-3.5" />
                       Desconectar
                     </Button>
+                  </div>
+                ) : platform.oauthOnly ? (
+                  <div className="space-y-3">
+                    <p className="text-xs text-zinc-600">
+                      {platform.placeholder}
+                    </p>
+                    <a
+                      href={platform.authUrl}
+                      className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-zinc-100 text-sm font-medium text-zinc-900 hover:bg-white"
+                    >
+                      <Link2 className="size-3.5" />
+                      Conectar {platform.label}
+                    </a>
                   </div>
                 ) : (
                   <div className="space-y-4">

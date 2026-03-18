@@ -323,3 +323,20 @@ export async function fetchInstagramPublicData(
       "Instagram requer conta Business/Creator vinculada a uma Página do Facebook. Configure o OAuth na página de Conexões para acessar métricas do Instagram.",
   };
 }
+
+// ────────────────────────────────────────
+// TikTok - Sem API publica
+// ────────────────────────────────────────
+
+export interface TikTokPublicData {
+  error: string;
+}
+
+export async function fetchTikTokPublicData(
+  _username: string
+): Promise<TikTokPublicData> {
+  return {
+    error:
+      "TikTok não oferece API pública. Configure o OAuth na página de Conexões para acessar métricas do TikTok.",
+  };
+}
