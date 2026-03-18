@@ -260,9 +260,9 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Analise de Metricas</h1>
+        <h1 className="text-2xl font-bold text-white">Análise de Métricas</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Acompanhe a evolucao detalhada das suas metricas por plataforma
+          Acompanhe a evolução detalhada das suas métricas por plataforma
         </p>
       </div>
 
@@ -314,10 +314,10 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 bg-zinc-900/50 py-16 text-center">
           <BarChart3 className="mb-4 size-10 text-zinc-700" />
           <h3 className="text-base font-medium text-zinc-400">
-            Sem dados de metricas
+            Sem dados de métricas
           </h3>
           <p className="mt-1 max-w-sm text-sm text-zinc-600">
-            Conecte uma plataforma e colete metricas para acompanhar a evolucao
+            Conecte uma plataforma e colete métricas para acompanhar a evolução
           </p>
         </div>
       ) : (
@@ -358,7 +358,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-zinc-500">
                       <Activity className="size-3" />
-                      <span>Retencao {formatPercent(ytSnapshot.retention)}</span>
+                      <span>Retenção {formatPercent(ytSnapshot.retention)}</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-zinc-500">
                       <UserPlus className="size-3" />
@@ -413,7 +413,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-zinc-500">
                       <MessageSquare className="size-3" />
-                      <span>{formatNumber(igSnapshot.totalComments)} comentarios</span>
+                      <span>{formatNumber(igSnapshot.totalComments)} comentários</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-zinc-500">
                       <Share2 className="size-3" />
@@ -471,16 +471,16 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-300">
                 <Eye className="size-4 text-zinc-500" />
-                Views Diarios / Alcance / Streams
+                Views Diários / Alcance / Streams
               </CardTitle>
               <CardDescription className="text-zinc-500">
-                Visualizacoes diarias por plataforma no periodo selecionado
+                Visualizações diárias por plataforma no período selecionado
               </CardDescription>
             </CardHeader>
             <CardContent>
               {dailyViewsChartData.length === 0 ? (
                 <div className="flex h-[220px] items-center justify-center text-sm text-zinc-600 sm:h-[300px]">
-                  Nenhum dado disponivel para o periodo selecionado
+                  Nenhum dado disponível para o período selecionado
                 </div>
               ) : (
                 <ChartContainer config={dailyViewsConfig} className="h-[220px] w-full sm:h-[300px]">
@@ -538,13 +538,13 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                   Crescimento de Seguidores
                 </CardTitle>
                 <CardDescription className="text-zinc-500">
-                  Evolucao do numero de seguidores por plataforma
+                  Evolução do número de seguidores por plataforma
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {followersChartData.length === 0 ? (
                   <div className="flex h-[200px] sm:h-[280px] items-center justify-center text-sm text-zinc-600">
-                    Nenhum dado disponivel para o periodo selecionado
+                    Nenhum dado disponível para o período selecionado
                   </div>
                 ) : (
                   <ChartContainer config={followersConfig} className="h-[200px] sm:h-[280px] w-full">
@@ -600,13 +600,13 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                   Engajamento por Plataforma
                 </CardTitle>
                 <CardDescription className="text-zinc-500">
-                  Curtidas + comentarios diarios (barras empilhadas)
+                  Curtidas + comentários diários (barras empilhadas)
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {engagementChartData.length === 0 ? (
                   <div className="flex h-[200px] sm:h-[280px] items-center justify-center text-sm text-zinc-600">
-                    Nenhum dado disponivel para o periodo selecionado
+                    Nenhum dado disponível para o período selecionado
                   </div>
                 ) : (
                   <ChartContainer config={engagementConfig} className="h-[200px] sm:h-[280px] w-full">
@@ -676,7 +676,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                 <Card className="border-zinc-800 bg-zinc-900">
                   <CardContent className="flex flex-col items-center justify-center py-6">
                     <Activity className="mb-2 size-6 text-zinc-500" />
-                    <p className="text-xs text-zinc-500">Retencao Media</p>
+                    <p className="text-xs text-zinc-500">Retenção Média</p>
                     <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
                       {formatPercent(ytSnapshot.retention)}
                     </p>
@@ -687,7 +687,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                 <Card className="border-zinc-800 bg-zinc-900">
                   <CardContent className="flex flex-col items-center justify-center py-6">
                     <Eye className="mb-2 size-6 text-zinc-500" />
-                    <p className="text-xs text-zinc-500">Duracao Media (s)</p>
+                    <p className="text-xs text-zinc-500">Duração Média (s)</p>
                     <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
                       {formatNumber(ytSnapshot.avgDuration)}
                     </p>
@@ -724,7 +724,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                 <Card className="border-zinc-800 bg-zinc-900">
                   <CardContent className="flex flex-col items-center justify-center py-6">
                     <Eye className="mb-2 size-6 text-zinc-500" />
-                    <p className="text-xs text-zinc-500">Alcance Total (periodo)</p>
+                    <p className="text-xs text-zinc-500">Alcance Total (período)</p>
                     <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
                       {formatNumber(
                         sumField(filteredHistory, "INSTAGRAM", "dailyViews")
@@ -737,7 +737,7 @@ export function MetricsClient({ history, snapshots }: MetricsClientProps) {
                 <Card className="border-zinc-800 bg-zinc-900">
                   <CardContent className="flex flex-col items-center justify-center py-6">
                     <UserPlus className="mb-2 size-6 text-zinc-500" />
-                    <p className="text-xs text-zinc-500">Novos Seguidores (periodo)</p>
+                    <p className="text-xs text-zinc-500">Novos Seguidores (período)</p>
                     <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
                       {formatNumber(
                         sumField(filteredHistory, "INSTAGRAM", "subsGained")

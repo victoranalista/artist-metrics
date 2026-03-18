@@ -69,8 +69,8 @@ type SortDirection = "asc" | "desc";
 // ── Helpers ──
 
 const contentTypeLabels: Record<string, string> = {
-  VIDEO: "Video",
-  video: "Video",
+  VIDEO: "Vídeo",
+  video: "Vídeo",
   SHORT: "Short",
   short: "Short",
   REEL: "Reel",
@@ -79,10 +79,10 @@ const contentTypeLabels: Record<string, string> = {
   post: "Post",
   STORY: "Story",
   story: "Story",
-  TRACK: "Musica",
-  track: "Musica",
-  ALBUM: "Album",
-  album: "Album",
+  TRACK: "Música",
+  track: "Música",
+  ALBUM: "Álbum",
+  album: "Álbum",
   PLAYLIST: "Playlist",
   playlist: "Playlist",
 };
@@ -232,7 +232,7 @@ export function ContentClient({ content }: ContentClientProps) {
                     <Video className="size-4 text-zinc-400" />
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500">Total de Conteudos</p>
+                    <p className="text-xs text-zinc-500">Total de Conteúdos</p>
                     <p className="text-2xl font-bold text-white">{totalCount}</p>
                   </div>
                 </div>
@@ -247,7 +247,7 @@ export function ContentClient({ content }: ContentClientProps) {
                     <Trophy className="size-4 text-zinc-400" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-zinc-500">Conteudo Mais Popular</p>
+                    <p className="text-xs text-zinc-500">Conteúdo Mais Popular</p>
                     <p className="truncate text-sm font-bold text-white" title={topItem?.title}>
                       {topItem?.title ?? "\u2014"}
                     </p>
@@ -269,11 +269,11 @@ export function ContentClient({ content }: ContentClientProps) {
                     <BarChart3 className="size-4 text-zinc-400" />
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500">Engajamento Medio</p>
+                    <p className="text-xs text-zinc-500">Engajamento Médio</p>
                     <p className="text-2xl font-bold text-white">
                       {formatNumber(avgEngagement)}
                     </p>
-                    <p className="text-xs text-zinc-600">curtidas + comentarios por conteudo</p>
+                    <p className="text-xs text-zinc-600">curtidas + comentários por conteúdo</p>
                   </div>
                 </div>
               </CardContent>
@@ -336,7 +336,7 @@ export function ContentClient({ content }: ContentClientProps) {
                     </div>
                     <div className="rounded-lg bg-zinc-800/50 px-3 py-2">
                       <p className="flex items-center gap-1 text-xs text-zinc-500">
-                        <MessageCircle className="size-3" /> Comentarios
+                        <MessageCircle className="size-3" /> Comentários
                       </p>
                       <p className="text-sm font-bold text-white">
                         {displayVal(topItem.comments)}
@@ -402,7 +402,7 @@ export function ContentClient({ content }: ContentClientProps) {
                         {platformNames[plat]}
                       </span>
                       <span className="text-xs text-zinc-600">
-                        {items.length} conteudo{items.length !== 1 ? "s" : ""}
+                        {items.length} conteúdo{items.length !== 1 ? "s" : ""}
                       </span>
                     </CardTitle>
                   </CardHeader>
@@ -446,9 +446,9 @@ export function ContentClient({ content }: ContentClientProps) {
         </MotionSection>
       )}
 
-      {/* ── Section 4: Todos os Conteudos (table) ── */}
+      {/* ── Section 4: Todos os Conteúdos (table) ── */}
       <MotionSection delay={0.2}>
-        <h2 className="mb-4 text-lg font-semibold text-white">Todos os Conteudos</h2>
+        <h2 className="mb-4 text-lg font-semibold text-white">Todos os Conteúdos</h2>
 
         {/* Filter tabs */}
         <div className="mb-4 flex gap-1 overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900 p-1 w-fit max-w-full">
@@ -471,13 +471,13 @@ export function ContentClient({ content }: ContentClientProps) {
         <Card className="border-zinc-800 bg-zinc-900">
           <CardHeader>
             <CardTitle className="text-base font-semibold text-white">
-              Conteudos
+              Conteúdos
             </CardTitle>
             <CardDescription className="text-zinc-500">
               {filtered.length}{" "}
               {filtered.length === 1
-                ? "conteudo encontrado"
-                : "conteudos encontrados"}
+                ? "conteúdo encontrado"
+                : "conteúdos encontrados"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -485,11 +485,11 @@ export function ContentClient({ content }: ContentClientProps) {
               <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
                 <Inbox className="mb-3 size-10 text-zinc-600" />
                 <p className="text-sm font-medium">
-                  Nenhum conteudo encontrado
+                  Nenhum conteúdo encontrado
                 </p>
                 <p className="mt-1 text-xs text-zinc-600">
-                  Conecte suas plataformas e colete metricas para ver seus
-                  conteudos aqui.
+                  Conecte suas plataformas e colete métricas para ver seus
+                  conteúdos aqui.
                 </p>
               </div>
             ) : (
@@ -498,7 +498,7 @@ export function ContentClient({ content }: ContentClientProps) {
                   <TableHeader>
                     <TableRow className="border-zinc-800 hover:bg-transparent">
                       <TableHead className="text-xs text-zinc-500">
-                        Titulo
+                        Título
                       </TableHead>
                       <TableHead className="text-xs text-zinc-500">
                         Plataforma
@@ -513,7 +513,7 @@ export function ContentClient({ content }: ContentClientProps) {
                         <SortableHeader label="Curtidas" column="likes" />
                       </TableHead>
                       <TableHead className="text-right">
-                        <SortableHeader label="Comentarios" column="comments" />
+                        <SortableHeader label="Comentários" column="comments" />
                       </TableHead>
                       <TableHead className="text-right">
                         <SortableHeader label="Data" column="publishedAt" />
