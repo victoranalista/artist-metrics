@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState, useTransition } from "react";
+import { useRef, useEffect, useState, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -25,6 +25,7 @@ import {
   History,
   X,
   ChevronRight,
+  ArrowDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -110,37 +111,37 @@ function MarkdownContent({ content }: { content: string }) {
       remarkPlugins={[remarkGfm]}
       components={{
         h1: ({ children }) => (
-          <h3 className="mb-3 mt-5 border-b border-stone-300/10 pb-2 text-[15px] font-semibold tracking-tight text-stone-200 first:mt-0">
+          <h3 className="mb-3 mt-5 border-b border-zinc-700/50 pb-2 text-[15px] font-semibold tracking-tight text-zinc-100 first:mt-0">
             {children}
           </h3>
         ),
         h2: ({ children }) => (
-          <h4 className="mb-2 mt-4 text-[13px] font-semibold text-stone-300 first:mt-0">
+          <h4 className="mb-2 mt-4 text-[14px] font-semibold text-zinc-200 first:mt-0">
             {children}
           </h4>
         ),
         h3: ({ children }) => (
-          <h5 className="mb-1.5 mt-3 text-[13px] font-medium text-stone-400 first:mt-0">
+          <h5 className="mb-1.5 mt-3 text-[13px] font-medium text-zinc-300 first:mt-0">
             {children}
           </h5>
         ),
         p: ({ children }) => (
-          <p className="mb-2.5 text-[13px] leading-relaxed text-stone-400 last:mb-0">
+          <p className="mb-2.5 text-[13px] leading-[1.7] text-zinc-300 last:mb-0 sm:text-sm sm:leading-[1.7]">
             {children}
           </p>
         ),
         strong: ({ children }) => (
-          <strong className="font-semibold text-stone-200">{children}</strong>
+          <strong className="font-semibold text-zinc-100">{children}</strong>
         ),
         em: ({ children }) => (
-          <em className="text-stone-300 not-italic">{children}</em>
+          <em className="text-zinc-200 not-italic">{children}</em>
         ),
         a: ({ href, children }) => (
           <a
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-stone-300 underline decoration-stone-500/40 underline-offset-2 transition hover:text-stone-200"
+            className="inline-flex items-center gap-1 text-zinc-200 underline decoration-zinc-500/40 underline-offset-2 transition hover:text-zinc-100"
           >
             {children}
             <ExternalLink className="inline size-2.5" />
@@ -157,11 +158,11 @@ function MarkdownContent({ content }: { content: string }) {
         li: ({ children, ...props }) => {
           const isOrdered = (props as { node?: { parentNode?: { tagName?: string } } }).node?.parentNode?.tagName === "ol";
           return (
-            <li className="flex gap-2.5 text-[13px] leading-relaxed text-stone-400">
+            <li className="flex gap-2.5 text-[13px] leading-[1.7] text-zinc-300 sm:text-sm">
               {isOrdered ? (
-                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md bg-stone-300/10 text-[10px] font-semibold text-stone-400 [counter-increment:item] before:content-[counter(item)]" />
+                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md bg-zinc-800 text-[10px] font-semibold text-zinc-400 [counter-increment:item] before:content-[counter(item)]" />
               ) : (
-                <span className="mt-[9px] size-1 shrink-0 rounded-full bg-stone-500" />
+                <span className="mt-[9px] size-1 shrink-0 rounded-full bg-zinc-500" />
               )}
               <span className="flex-1">{children}</span>
             </li>
@@ -171,31 +172,31 @@ function MarkdownContent({ content }: { content: string }) {
           const isBlock = className?.includes("language-");
           if (isBlock) {
             return (
-              <div className="my-3 -mx-1 overflow-x-auto rounded-xl border border-stone-300/5 bg-stone-900/40 p-2 sm:p-3">
-                <code className="text-[11px] text-stone-400 sm:text-xs">{children}</code>
+              <div className="my-3 overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900 p-3">
+                <code className="text-xs text-zinc-400">{children}</code>
               </div>
             );
           }
           return (
-            <code className="rounded-md bg-stone-300/10 px-1.5 py-0.5 text-xs font-medium text-stone-300">
+            <code className="rounded-md bg-zinc-800 px-1.5 py-0.5 text-xs font-medium text-zinc-300">
               {children}
             </code>
           );
         },
         pre: ({ children }) => <>{children}</>,
         blockquote: ({ children }) => (
-          <blockquote className="my-3 border-l-2 border-stone-500/30 bg-stone-300/[0.03] py-2 pl-4 pr-3">
+          <blockquote className="my-3 border-l-2 border-zinc-600 bg-zinc-900/50 py-2 pl-4 pr-3">
             {children}
           </blockquote>
         ),
-        hr: () => <hr className="my-4 border-stone-300/10" />,
+        hr: () => <hr className="my-4 border-zinc-800" />,
         table: ({ children }) => (
-          <div className="my-3 -mx-1 overflow-x-auto rounded-xl border border-stone-300/10">
-            <table className="w-full min-w-0 text-[12px] sm:text-[13px]">{children}</table>
+          <div className="my-3 overflow-x-auto rounded-xl border border-zinc-800">
+            <table className="w-full text-[12px] sm:text-[13px]">{children}</table>
           </div>
         ),
         thead: ({ children }) => (
-          <thead className="bg-stone-300/[0.04] text-[11px] font-medium uppercase tracking-wider text-stone-500">
+          <thead className="bg-zinc-800/50 text-[11px] font-medium uppercase tracking-wider text-zinc-400">
             {children}
           </thead>
         ),
@@ -203,13 +204,13 @@ function MarkdownContent({ content }: { content: string }) {
           <th className="px-3 py-2.5 text-left font-semibold">{children}</th>
         ),
         tbody: ({ children }) => (
-          <tbody className="divide-y divide-stone-300/5">{children}</tbody>
+          <tbody className="divide-y divide-zinc-800">{children}</tbody>
         ),
         tr: ({ children }) => (
-          <tr className="transition hover:bg-stone-300/[0.03]">{children}</tr>
+          <tr className="transition hover:bg-zinc-800/30">{children}</tr>
         ),
         td: ({ children }) => (
-          <td className="px-3 py-2 text-stone-400">{children}</td>
+          <td className="px-3 py-2 text-zinc-300">{children}</td>
         ),
       }}
     >
@@ -271,6 +272,9 @@ export function ChatClient({
   const [isDeleting, startDeleting] = useTransition();
   const [showCommandHint, setShowCommandHint] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef = useRef(true);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const isStreamingRef = useRef(false);
 
   // Detect active mode from latest messages metadata
   const activeMode = (() => {
@@ -283,11 +287,46 @@ export function ChatClient({
     return null;
   })();
 
+  // ── Smart scroll (ChatGPT-style) ──
+  const checkIfNearBottom = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const threshold = 150;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+    isNearBottomRef.current = nearBottom;
+    setShowScrollButton(!nearBottom && messages.length > 0);
+  }, [messages.length]);
+
+  // Track scroll position
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const el = scrollRef.current;
+    if (!el) return;
+    const handler = () => checkIfNearBottom();
+    el.addEventListener("scroll", handler, { passive: true });
+    return () => el.removeEventListener("scroll", handler);
+  }, [checkIfNearBottom]);
+
+  // Auto-scroll: only if user is near bottom (ChatGPT behavior)
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    if (isNearBottomRef.current) {
+      // Smooth scroll during streaming, instant for user messages
+      el.scrollTo({
+        top: el.scrollHeight,
+        behavior: isStreamingRef.current ? "smooth" : "instant",
+      });
     }
   }, [messages]);
+
+  const scrollToBottom = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    isNearBottomRef.current = true;
+    setShowScrollButton(false);
+  }, []);
 
   async function handleSend(content?: string) {
     const text = (content ?? input).trim();
@@ -302,9 +341,12 @@ export function ChatClient({
     setMessages((prev) => [...prev, tempUserMsg]);
     setInput("");
     setIsSending(true);
+    isStreamingRef.current = false;
+
+    // Scroll to show the user's message
+    isNearBottomRef.current = true;
 
     try {
-      // Create session if needed
       let activeSessionId = sessionId;
       if (!activeSessionId) {
         activeSessionId = await createChatSession();
@@ -352,8 +394,8 @@ export function ChatClient({
 
       const decoder = new TextDecoder();
       let accumulated = "";
+      isStreamingRef.current = true;
 
-      // Add a temporary streaming message
       const streamMsgId = `stream-${Date.now()}`;
       setMessages((prev) => [
         ...prev,
@@ -386,7 +428,6 @@ export function ChatClient({
                 )
               );
             } else if (event.type === "done") {
-              // Replace streaming message with final saved message
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === streamMsgId ? (event.message as ChatMessage) : m
@@ -406,7 +447,8 @@ export function ChatClient({
       );
     } finally {
       setIsSending(false);
-      }
+      isStreamingRef.current = false;
+    }
   }
 
   function handleDelete(id: string) {
@@ -415,7 +457,6 @@ export function ChatClient({
       setSessions((prev) => prev.filter((s) => s.id !== id));
       setDeleteTarget(null);
 
-      // If we deleted the current session, go to new chat
       if (id === sessionId) {
         router.push("/chat");
       }
@@ -430,11 +471,11 @@ export function ChatClient({
   }
 
   const isEmpty = messages.length === 0;
+  const hasStreamContent = messages.some((m) => m.id.startsWith("stream-") && m.content);
 
-  // Sessions panel content (reused for desktop sidebar and mobile drawer)
+  // Sessions panel content
   const sessionsContent = (
     <>
-      {/* New chat button */}
       <button
         onClick={() => {
           router.push("/chat");
@@ -446,7 +487,6 @@ export function ChatClient({
         Nova conversa
       </button>
 
-      {/* Sessions list */}
       <div className="flex-1 space-y-1 overflow-y-auto">
         {sessions.length === 0 ? (
           <p className="px-2 py-4 text-center text-xs text-zinc-600">
@@ -493,8 +533,8 @@ export function ChatClient({
   );
 
   return (
-    <div className="flex h-[calc(100dvh-9rem)] gap-3 md:h-[calc(100dvh-6.5rem)]">
-      {/* ── Desktop sessions sidebar (always visible) ── */}
+    <div className="flex h-[calc(100dvh-9rem)] md:h-[calc(100dvh-6.5rem)]">
+      {/* ── Desktop sessions sidebar ── */}
       <div className="hidden w-64 shrink-0 flex-col rounded-xl border border-zinc-800 bg-zinc-950/50 p-3 md:flex">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-zinc-200">Conversas</h3>
@@ -539,27 +579,26 @@ export function ChatClient({
       </AnimatePresence>
 
       {/* ── Chat column ── */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Header */}
-        <div className="flex shrink-0 items-center justify-between pb-2 sm:pb-3">
-          <div className="flex items-center gap-2.5">
-            {/* Mobile sessions toggle */}
+      <div className="flex min-w-0 flex-1 flex-col md:ml-3">
+        {/* Header — compact */}
+        <div className="flex shrink-0 items-center justify-between pb-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setShowMobileSessions(true)}
-              className="flex size-9 items-center justify-center rounded-lg bg-zinc-800 md:hidden"
+              className="flex size-8 items-center justify-center rounded-lg bg-zinc-800/80 md:hidden"
             >
-              <History className="size-4 text-zinc-400" />
+              <History className="size-3.5 text-zinc-400" />
             </button>
-            <div className="hidden size-9 items-center justify-center rounded-lg bg-zinc-800 md:flex">
-              <MessageSquare className="size-4 text-zinc-400" />
+            <div className="hidden size-8 items-center justify-center rounded-lg bg-zinc-800/80 md:flex">
+              <MessageSquare className="size-3.5 text-zinc-400" />
             </div>
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-semibold text-zinc-100 sm:text-base">
+              <h1 className="truncate text-sm font-semibold text-zinc-100">
                 Sua Equipe de Marketing
               </h1>
               <div className="flex items-center gap-1.5">
                 <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-                <p className="truncate text-[10px] text-zinc-500 sm:text-xs">Online — Dedicada à Débora Kailany</p>
+                <p className="truncate text-[10px] text-zinc-500">Online</p>
               </div>
             </div>
           </div>
@@ -571,19 +610,19 @@ export function ChatClient({
               className="shrink-0 text-zinc-500 hover:text-zinc-300"
             >
               <Plus className="size-4" />
-              <span className="ml-1.5 hidden sm:inline">Nova conversa</span>
+              <span className="ml-1.5 hidden sm:inline">Nova</span>
             </Button>
           )}
         </div>
 
-        {/* Messages area */}
+        {/* Messages area — ChatGPT style: no border on mobile, scrolls internally */}
+        <div className="relative flex-1 overflow-hidden rounded-xl border border-zinc-800/50 bg-zinc-950/30 sm:rounded-2xl md:border-zinc-800 md:bg-zinc-950/50">
           <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl border border-zinc-800 bg-zinc-950/50 p-2 sm:rounded-2xl sm:p-4"
+            className="absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-contain scroll-smooth"
           >
             {isEmpty ? (
-              <div className="flex h-full flex-col items-center justify-center gap-4 px-2 sm:gap-6">
-                {/* Welcome */}
+              <div className="flex h-full flex-col items-center justify-center gap-4 px-4 sm:gap-6">
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -601,7 +640,6 @@ export function ChatClient({
                   </p>
                 </div>
 
-                {/* Suggested prompts */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -628,7 +666,6 @@ export function ChatClient({
                   })}
                 </motion.div>
 
-                {/* Recent sessions shortcut (mobile only) */}
                 {sessions.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0 }}
@@ -648,137 +685,141 @@ export function ChatClient({
                 )}
               </div>
             ) : (
-              <div className="space-y-5">
-                <AnimatePresence initial={false}>
-                  {messages.map((msg) => (
-                    <motion.div
-                      key={msg.id}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className={`flex gap-2 sm:gap-3 ${
-                        msg.role === "USER" ? "justify-end" : "justify-start"
-                      }`}
-                    >
-                      {msg.role === "ASSISTANT" && (
-                        <div className="mt-1 hidden size-7 shrink-0 items-center justify-center rounded-lg bg-zinc-800 sm:flex sm:size-8 sm:rounded-xl">
+              /* ── Messages list — ChatGPT style ── */
+              <div className="mx-auto max-w-3xl px-3 py-4 sm:px-6">
+                {messages.map((msg) => (
+                  <div key={msg.id} className="mb-6 last:mb-0">
+                    {msg.role === "USER" ? (
+                      /* User message: right-aligned bubble */
+                      <div className="flex justify-end">
+                        <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-zinc-800 px-4 py-2.5 sm:max-w-[70%]">
+                          <p className="whitespace-pre-wrap break-words text-[13px] leading-[1.7] text-zinc-100 sm:text-sm">
+                            {msg.content}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Assistant message: full-width, no bubble (ChatGPT style) */
+                      <div className="flex gap-3">
+                        <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-zinc-800 sm:size-8">
                           <Bot className="size-3.5 text-zinc-400 sm:size-4" />
                         </div>
-                      )}
-
-                      <div
-                        className={`min-w-0 text-sm leading-relaxed ${
-                          msg.role === "USER"
-                            ? "max-w-[80%] rounded-2xl rounded-br-md bg-zinc-800 px-3 py-2 text-zinc-100 sm:max-w-[75%] sm:px-4 sm:py-2.5"
-                            : "max-w-full rounded-2xl rounded-bl-md border border-zinc-800 bg-zinc-900/80 px-3 py-3 sm:max-w-[85%] sm:px-5 sm:py-4"
-                        }`}
-                      >
-                        {msg.role === "USER" ? (
-                          <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                        ) : (
-                          <div className="overflow-hidden">
+                        <div className="min-w-0 flex-1 overflow-hidden pt-0.5">
+                          {msg.content ? (
                             <RichMessage content={msg.content} />
-                          </div>
-                        )}
-                      </div>
-
-                      {msg.role === "USER" && (
-                        <div className="mt-1 hidden size-7 shrink-0 items-center justify-center rounded-lg bg-zinc-800 sm:flex sm:size-8 sm:rounded-xl">
-                          <User className="size-3.5 text-zinc-400 sm:size-4" />
+                          ) : (
+                            /* Empty streaming message — show typing dots */
+                            <div className="flex items-center gap-1 py-2">
+                              <span className="size-1.5 animate-bounce rounded-full bg-zinc-500 [animation-delay:0ms]" />
+                              <span className="size-1.5 animate-bounce rounded-full bg-zinc-500 [animation-delay:150ms]" />
+                              <span className="size-1.5 animate-bounce rounded-full bg-zinc-500 [animation-delay:300ms]" />
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                      </div>
+                    )}
+                  </div>
+                ))}
 
-                {/* Typing indicator — only show before streaming starts */}
-                {isSending && !messages.some((m) => m.id.startsWith("stream-") && m.content) && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-2 sm:gap-3"
-                  >
-                    <div className="hidden size-7 shrink-0 items-center justify-center rounded-lg bg-zinc-800 sm:flex sm:size-8 sm:rounded-xl">
+                {/* Typing indicator — only before stream message is created */}
+                {isSending && !hasStreamContent && !messages.some((m) => m.id.startsWith("stream-")) && (
+                  <div className="mb-6 flex gap-3">
+                    <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-zinc-800 sm:size-8">
                       <Bot className="size-3.5 text-zinc-400 sm:size-4" />
                     </div>
-                    <div className="flex items-center gap-2 rounded-2xl rounded-bl-md border border-zinc-800 bg-zinc-900/80 px-4 py-2.5 sm:px-5 sm:py-3">
-                      <Loader2 className="size-3.5 animate-spin text-zinc-400" />
+                    <div className="flex items-center gap-2 pt-1">
+                      <Loader2 className="size-3.5 animate-spin text-zinc-500" />
                       <span className="text-xs text-zinc-500">Analisando...</span>
                     </div>
-                  </motion.div>
+                  </div>
                 )}
               </div>
             )}
           </div>
 
-          {/* Mode indicator */}
-          {activeMode && (
-            <div className="flex items-center gap-2 px-1 pt-2">
-              <Badge variant="secondary" className="bg-violet-500/15 text-violet-300 border-violet-500/20 text-[11px]">
-                {activeMode === "artist-preferences" ? "Configurando preferências" : "Produção artística"}
-              </Badge>
-              <span className="text-[11px] text-zinc-500">
-                Modo especial ativo — dados sendo salvos
-              </span>
-            </div>
-          )}
+          {/* Scroll to bottom button */}
+          <AnimatePresence>
+            {showScrollButton && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                onClick={scrollToBottom}
+                className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900/95 px-3 py-1.5 text-xs text-zinc-300 shadow-lg backdrop-blur-sm transition hover:bg-zinc-800"
+              >
+                <ArrowDown className="size-3" />
+                <span className="hidden sm:inline">Voltar ao fim</span>
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
 
-          {/* Input area */}
-          <div className="flex shrink-0 items-end gap-2 pt-2 sm:pt-3">
-            <div className="relative flex-1">
-              {/* Slash command hints */}
-              <AnimatePresence>
-                {showCommandHint && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 8 }}
-                    className="absolute bottom-full left-0 z-10 mb-2 w-full overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 shadow-xl"
-                  >
-                    {slashCommands
-                      .filter((cmd) => cmd.command.startsWith(input.trim()) || input.trim() === "/")
-                      .map((cmd) => (
-                        <button
-                          key={cmd.command}
-                          onClick={() => {
-                            setInput(cmd.command);
-                            setShowCommandHint(false);
-                          }}
-                          className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-zinc-800"
-                        >
-                          <span className="text-sm font-medium text-violet-400">{cmd.command}</span>
-                          <span className="text-xs text-zinc-500">{cmd.description}</span>
-                        </button>
-                      ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <Textarea
-                value={input}
-                onChange={(e) => {
-                  setInput(e.target.value);
-                  setShowCommandHint(e.target.value.startsWith("/") && e.target.value.length < 25);
-                }}
-                onKeyDown={handleKeyDown}
-                placeholder={activeMode ? "Continue a conversa..." : "Pergunte sobre métricas, estratégias... ou use /"}
-                disabled={isSending}
-                className="min-h-[44px] max-h-28 resize-none rounded-xl border-zinc-800 bg-zinc-900 text-sm text-zinc-100 placeholder:text-zinc-600 sm:min-h-[48px] sm:max-h-32"
-                rows={1}
-              />
-            </div>
-            <Button
-              onClick={() => handleSend()}
-              disabled={!input.trim() || isSending}
-              className="h-[44px] shrink-0 rounded-xl bg-zinc-100 px-3 text-zinc-900 transition hover:bg-white sm:h-12 sm:px-4"
-            >
-              {isSending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Send className="size-4" />
-              )}
-            </Button>
+        {/* Mode indicator */}
+        {activeMode && (
+          <div className="flex shrink-0 items-center gap-2 px-1 pt-1.5">
+            <Badge variant="secondary" className="bg-violet-500/15 text-violet-300 border-violet-500/20 text-[11px]">
+              {activeMode === "artist-preferences" ? "Configurando preferências" : "Produção artística"}
+            </Badge>
+            <span className="text-[11px] text-zinc-500">
+              Modo especial ativo
+            </span>
           </div>
+        )}
+
+        {/* Input area — clean, pinned at bottom */}
+        <div className="flex shrink-0 items-end gap-2 pt-2">
+          <div className="relative flex-1">
+            <AnimatePresence>
+              {showCommandHint && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  className="absolute bottom-full left-0 z-10 mb-2 w-full overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 shadow-xl"
+                >
+                  {slashCommands
+                    .filter((cmd) => cmd.command.startsWith(input.trim()) || input.trim() === "/")
+                    .map((cmd) => (
+                      <button
+                        key={cmd.command}
+                        onClick={() => {
+                          setInput(cmd.command);
+                          setShowCommandHint(false);
+                        }}
+                        className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-zinc-800"
+                      >
+                        <span className="text-sm font-medium text-violet-400">{cmd.command}</span>
+                        <span className="text-xs text-zinc-500">{cmd.description}</span>
+                      </button>
+                    ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <Textarea
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                setShowCommandHint(e.target.value.startsWith("/") && e.target.value.length < 25);
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder={activeMode ? "Continue a conversa..." : "Pergunte sobre métricas, estratégias..."}
+              disabled={isSending}
+              className="min-h-[44px] max-h-28 resize-none rounded-xl border-zinc-800 bg-zinc-900 text-sm text-zinc-100 placeholder:text-zinc-600"
+              rows={1}
+            />
+          </div>
+          <Button
+            onClick={() => handleSend()}
+            disabled={!input.trim() || isSending}
+            className="h-[44px] shrink-0 rounded-xl bg-zinc-100 px-3 text-zinc-900 transition hover:bg-white"
+          >
+            {isSending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Send className="size-4" />
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Delete confirmation dialog */}
