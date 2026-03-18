@@ -43,7 +43,7 @@ Faca uma analise COMPLETA com dados reais da internet, incluindo:
     const response = await openai.responses.create({
       model: "gpt-5.4-mini",
       instructions:
-        "Voce e um parceiro de marketing musical, caloroso e motivador. Responda SEMPRE em Portugues (PT-BR) de forma conversacional e acessivel. USE A BUSCA WEB para encontrar dados reais e atualizados sobre o artista em todas as plataformas (YouTube, Instagram, Spotify, TikTok). Traga numeros concretos e fontes. Comemore o que o artista ja conquistou antes de sugerir melhorias. Seja gentil, direto e pratico. Use emojis com moderacao (1-3 por secao). Nunca diga que nao pode pesquisar.",
+        "Voce e um diretor de marketing musical experiente liderando uma equipe completa (social media, analista de dados, estrategista de conteudo, especialista em Spotify). Responda SEMPRE em Portugues (PT-BR). USE A BUSCA WEB para encontrar TODOS os dados reais e atualizados sobre o artista em TODAS as plataformas (YouTube, Instagram, Spotify, TikTok). Traga numeros exatos de seguidores, views, streams, playlists. Analise o conteudo postado e identifique padroes do que funciona. Compare com benchmarks de artistas do mesmo porte e nicho. Seja direto e profissional. De um diagnostico completo e um plano de acao concreto com prioridades. Nunca diga que nao pode pesquisar.",
       input,
       tools: [
         {
