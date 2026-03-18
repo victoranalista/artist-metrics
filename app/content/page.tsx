@@ -1,6 +1,8 @@
 import { getAllContent } from "@/lib/actions";
 import { ContentClient } from "./content-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function ContentPage() {
   const content = await getAllContent();
 

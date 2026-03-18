@@ -4,6 +4,8 @@ import { GrowthChart } from "@/components/dashboard/growth-chart";
 import { PlatformComparison } from "@/components/dashboard/platform-comparison";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const [snapshots, connections] = await Promise.all([
     prisma.metricsSnapshot.findMany({

@@ -21,7 +21,9 @@
       "Bash(rm -rf node_modules)",
       "Bash(pnpm install:*)",
       "Bash(pnpm approve-builds:*)",
-      "Bash(npx shadcn@latest init -d --force)"
+      "Bash(npx shadcn@latest init -d --force)",
+      "Bash(npx shadcn@latest add card badge avatar skeleton table tabs sheet dialog input textarea select separator progress tooltip scroll-area alert dropdown-menu command sonner chart --force)",
+      "Bash(npx shadcn@latest add card badge avatar skeleton table tabs sheet dialog input textarea select separator progress tooltip scroll-area alert dropdown-menu command sonner chart -y)"
     ]
   }
 }

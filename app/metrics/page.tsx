@@ -1,6 +1,8 @@
 import { getMetricsHistory, getLatestSnapshots } from "@/lib/actions";
 import { MetricsClient } from "./metrics-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function MetricsPage() {
   const [history, snapshots] = await Promise.all([
     getMetricsHistory(undefined, 90),

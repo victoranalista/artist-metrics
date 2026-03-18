@@ -1,6 +1,8 @@
 import { getAudienceData, getLatestSnapshots } from "@/lib/actions";
 import { AudienceClient } from "./audience-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function AudiencePage() {
   const [audienceData, snapshots] = await Promise.all([
     getAudienceData(),
