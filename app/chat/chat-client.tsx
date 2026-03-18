@@ -171,8 +171,8 @@ function MarkdownContent({ content }: { content: string }) {
           const isBlock = className?.includes("language-");
           if (isBlock) {
             return (
-              <div className="my-3 overflow-x-auto rounded-xl border border-stone-300/5 bg-stone-900/40 p-3">
-                <code className="text-xs text-stone-400">{children}</code>
+              <div className="my-3 -mx-1 overflow-x-auto rounded-xl border border-stone-300/5 bg-stone-900/40 p-2 sm:p-3">
+                <code className="text-[11px] text-stone-400 sm:text-xs">{children}</code>
               </div>
             );
           }
@@ -190,8 +190,8 @@ function MarkdownContent({ content }: { content: string }) {
         ),
         hr: () => <hr className="my-4 border-stone-300/10" />,
         table: ({ children }) => (
-          <div className="my-3 overflow-x-auto rounded-xl border border-stone-300/10">
-            <table className="w-full text-[13px]">{children}</table>
+          <div className="my-3 -mx-1 overflow-x-auto rounded-xl border border-stone-300/10">
+            <table className="w-full min-w-0 text-[12px] sm:text-[13px]">{children}</table>
           </div>
         ),
         thead: ({ children }) => (
@@ -493,7 +493,7 @@ export function ChatClient({
   );
 
   return (
-    <div className="flex h-[calc(100vh-10rem)] gap-3 pb-safe md:h-[calc(100vh-6.5rem)]">
+    <div className="flex h-[calc(100dvh-9rem)] gap-3 md:h-[calc(100dvh-6.5rem)]">
       {/* ── Desktop sessions sidebar (always visible) ── */}
       <div className="hidden w-64 shrink-0 flex-col rounded-xl border border-zinc-800 bg-zinc-950/50 p-3 md:flex">
         <div className="mb-3 flex items-center justify-between">
@@ -541,7 +541,7 @@ export function ChatClient({
       {/* ── Chat column ── */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3">
+        <div className="flex shrink-0 items-center justify-between pb-2 sm:pb-3">
           <div className="flex items-center gap-2.5">
             {/* Mobile sessions toggle */}
             <button
@@ -579,7 +579,7 @@ export function ChatClient({
         {/* Messages area */}
           <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto overscroll-contain rounded-xl border border-zinc-800 bg-zinc-950/50 p-3 sm:rounded-2xl sm:p-4"
+            className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl border border-zinc-800 bg-zinc-950/50 p-2 sm:rounded-2xl sm:p-4"
           >
             {isEmpty ? (
               <div className="flex h-full flex-col items-center justify-center gap-4 px-2 sm:gap-6">
@@ -670,14 +670,14 @@ export function ChatClient({
                       <div
                         className={`min-w-0 text-sm leading-relaxed ${
                           msg.role === "USER"
-                            ? "max-w-[85%] rounded-2xl rounded-br-md bg-zinc-800 px-3 py-2 text-zinc-100 sm:max-w-[75%] sm:px-4 sm:py-2.5"
-                            : "max-w-[95%] rounded-2xl rounded-bl-md border border-zinc-800 bg-zinc-900/80 px-3 py-3 sm:max-w-[85%] sm:px-5 sm:py-4"
+                            ? "max-w-[80%] rounded-2xl rounded-br-md bg-zinc-800 px-3 py-2 text-zinc-100 sm:max-w-[75%] sm:px-4 sm:py-2.5"
+                            : "max-w-full rounded-2xl rounded-bl-md border border-zinc-800 bg-zinc-900/80 px-3 py-3 sm:max-w-[85%] sm:px-5 sm:py-4"
                         }`}
                       >
                         {msg.role === "USER" ? (
                           <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                         ) : (
-                          <div className="overflow-x-auto">
+                          <div className="overflow-hidden">
                             <RichMessage content={msg.content} />
                           </div>
                         )}
@@ -692,8 +692,8 @@ export function ChatClient({
                   ))}
                 </AnimatePresence>
 
-                {/* Typing indicator */}
-                {isSending && (
+                {/* Typing indicator — only show before streaming starts */}
+                {isSending && !messages.some((m) => m.id.startsWith("stream-") && m.content) && (
                   <motion.div
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -725,7 +725,7 @@ export function ChatClient({
           )}
 
           {/* Input area */}
-          <div className="flex items-end gap-2 pt-2 sm:pt-3">
+          <div className="flex shrink-0 items-end gap-2 pt-2 sm:pt-3">
             <div className="relative flex-1">
               {/* Slash command hints */}
               <AnimatePresence>
