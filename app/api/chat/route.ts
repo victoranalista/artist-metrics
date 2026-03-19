@@ -7,9 +7,15 @@ import {
 import { parseCommand, getActiveMode } from "@/lib/ai/commands";
 import { handleArtistPreferences } from "@/lib/ai/handlers/artist-preferences";
 import { handleProductionArtist } from "@/lib/ai/handlers/production-artist";
+import {
+  AGENTS,
+  buildRouterPrompt,
+  buildAgentPrompt,
+  type Agent,
+} from "@/lib/ai/agents";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 // ── Parallel version of getLatestSnapshots ──
 
@@ -345,10 +351,110 @@ async function buildChatContext(sessionId: string) {
     content: m.content,
   }));
 
-  return { fullSystemPrompt, messages };
+  return { fullSystemPrompt, messages, artistName: artist.name };
 }
 
-// ── POST handler with streaming ──
+// ── Route agents based on user message ──
+
+async function routeToAgents(userMessage: string): Promise<{ agents: string[]; lead: string }> {
+  const routerPrompt = buildRouterPrompt(userMessage);
+
+  const response = await openai.responses.create({
+    model: "gpt-5.4-mini",
+    instructions: "Voce e um roteador. Responda APENAS com JSON valido.",
+    input: [{ role: "user", content: routerPrompt }],
+  });
+
+  const text = response.output_text?.trim() ?? "";
+
+  try {
+    const parsed = JSON.parse(text) as { agents: string[]; lead: string };
+    // Validate agent IDs
+    const validAgents = parsed.agents.filter((id: string) => id in AGENTS);
+    if (validAgents.length < 2) {
+      return { agents: ["data", "social"], lead: "data" };
+    }
+    const lead = validAgents.includes(parsed.lead) ? parsed.lead : validAgents[0];
+    return { agents: validAgents.slice(0, 4), lead };
+  } catch {
+    return { agents: ["data", "social"], lead: "data" };
+  }
+}
+
+// ── Stream a single agent response ──
+
+async function streamAgentResponse(
+  agent: Agent,
+  artistName: string,
+  artistContext: string,
+  userMessage: string,
+  previousResponses: { agentName: string; agentRole: string; content: string }[],
+  isConclusion: boolean,
+  controller: ReadableStreamDefaultController,
+  encoder: TextEncoder
+): Promise<string> {
+  const prompt = buildAgentPrompt(
+    agent,
+    artistName,
+    artistContext,
+    userMessage,
+    previousResponses,
+    isConclusion
+  );
+
+  // Send agent_start event
+  controller.enqueue(
+    encoder.encode(
+      `data: ${JSON.stringify({
+        type: "agent_start",
+        agentId: agent.id,
+        name: agent.name,
+        emoji: agent.emoji,
+        role: agent.role,
+        color: agent.color,
+        isConclusion,
+      })}\n\n`
+    )
+  );
+
+  const stream = await openai.responses.create({
+    model: "gpt-5.4-mini",
+    instructions: prompt,
+    input: [{ role: "user", content: userMessage }],
+    tools: [
+      {
+        type: "web_search_preview",
+        search_context_size: isConclusion ? "high" : "medium",
+      },
+    ],
+    stream: true,
+  });
+
+  let fullContent = "";
+
+  for await (const event of stream) {
+    if (event.type === "response.output_text.delta") {
+      const delta = (event as { delta?: string }).delta ?? "";
+      fullContent += delta;
+      controller.enqueue(
+        encoder.encode(
+          `data: ${JSON.stringify({ type: "delta", content: delta, agentId: agent.id })}\n\n`
+        )
+      );
+    }
+  }
+
+  // Send agent_done event
+  controller.enqueue(
+    encoder.encode(
+      `data: ${JSON.stringify({ type: "agent_done", agentId: agent.id })}\n\n`
+    )
+  );
+
+  return fullContent;
+}
+
+// ── POST handler with multi-agent streaming ──
 
 export async function POST(req: Request) {
   const { content, sessionId } = (await req.json()) as {
@@ -391,8 +497,8 @@ export async function POST(req: Request) {
     });
   }
 
-  // Save user message + build context in parallel
-  const [, context] = await Promise.all([
+  // Save user message + build context + route agents in parallel
+  const [, context, routing] = await Promise.all([
     prisma.chatMessage.create({
       data: {
         artistId: ARTIST_ID,
@@ -402,69 +508,115 @@ export async function POST(req: Request) {
       },
     }),
     buildChatContext(sessionId),
+    routeToAgents(content),
   ]);
 
-  // Stream the OpenAI response
-  const stream = await openai.responses.create({
-    model: "gpt-5.4-mini",
-    instructions: context.fullSystemPrompt,
-    input: [
-      ...context.messages,
-      { role: "user" as const, content },
-    ],
-    tools: [
-      {
-        type: "web_search_preview",
-        search_context_size: "medium",
-      },
-    ],
-    stream: true,
-  });
+  // Order agents: lead first, then others
+  const orderedAgentIds = [
+    routing.lead,
+    ...routing.agents.filter((id) => id !== routing.lead),
+  ];
 
-  // Create a TransformStream to convert OpenAI events to SSE
   const encoder = new TextEncoder();
-  let fullContent = "";
 
   const readable = new ReadableStream({
     async start(controller) {
       try {
-        for await (const event of stream) {
-          if (event.type === "response.output_text.delta") {
-            const delta = (event as { delta?: string }).delta ?? "";
-            fullContent += delta;
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ type: "delta", content: delta })}\n\n`)
-            );
-          } else if (event.type === "response.completed") {
-            // Save assistant message to DB
-            const assistantMessage = await prisma.chatMessage.create({
-              data: {
-                artistId: ARTIST_ID,
-                sessionId,
-                role: "ASSISTANT",
-                content: fullContent,
+        const previousResponses: { agentName: string; agentRole: string; content: string }[] = [];
+        const savedMessages: Array<{ id: string; role: string; content: string; createdAt: Date | string; metadata: unknown }> = [];
+
+        // Stream each agent sequentially
+        for (const agentId of orderedAgentIds) {
+          const agent = AGENTS[agentId];
+          if (!agent) continue;
+
+          const agentContent = await streamAgentResponse(
+            agent,
+            context.artistName,
+            context.fullSystemPrompt,
+            content,
+            previousResponses,
+            false,
+            controller,
+            encoder
+          );
+
+          previousResponses.push({
+            agentName: agent.name,
+            agentRole: agent.role,
+            content: agentContent,
+          });
+
+          // Save agent message to DB
+          const saved = await prisma.chatMessage.create({
+            data: {
+              artistId: ARTIST_ID,
+              sessionId,
+              role: "ASSISTANT",
+              content: agentContent,
+              metadata: {
+                agentId: agent.id,
+                agentName: agent.name,
+                agentEmoji: agent.emoji,
+                agentColor: agent.color,
+                agentRole: agent.role,
               },
-            });
-
-            // Touch session updatedAt
-            await prisma.chatSession.update({
-              where: { id: sessionId },
-              data: { updatedAt: new Date() },
-            });
-
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({ type: "done", message: assistantMessage })}\n\n`
-              )
-            );
-            controller.close();
-          }
+            },
+          });
+          savedMessages.push(saved);
         }
-      } catch (error) {
-        console.error("Stream error:", error);
+
+        // Final conclusion by lead agent
+        const leadAgent = AGENTS[routing.lead];
+        if (leadAgent && previousResponses.length > 1) {
+          const conclusionContent = await streamAgentResponse(
+            leadAgent,
+            context.artistName,
+            context.fullSystemPrompt,
+            content,
+            previousResponses,
+            true,
+            controller,
+            encoder
+          );
+
+          const saved = await prisma.chatMessage.create({
+            data: {
+              artistId: ARTIST_ID,
+              sessionId,
+              role: "ASSISTANT",
+              content: conclusionContent,
+              metadata: {
+                agentId: leadAgent.id,
+                agentName: leadAgent.name,
+                agentEmoji: leadAgent.emoji,
+                agentColor: leadAgent.color,
+                agentRole: leadAgent.role,
+                isConclusion: true,
+              },
+            },
+          });
+          savedMessages.push(saved);
+        }
+
+        // Touch session updatedAt
+        await prisma.chatSession.update({
+          where: { id: sessionId },
+          data: { updatedAt: new Date() },
+        });
+
+        // Send done event with all saved messages
         controller.enqueue(
           encoder.encode(
-            `data: ${JSON.stringify({ type: "error", error: "Erro ao gerar resposta" })}\n\n`
+            `data: ${JSON.stringify({ type: "done", messages: savedMessages })}\n\n`
+          )
+        );
+        controller.close();
+      } catch (error) {
+        console.error("Multi-agent stream error:", error);
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({ type: "error", error: "Erro ao gerar resposta da equipe" })}\n\n`
           )
         );
         controller.close();

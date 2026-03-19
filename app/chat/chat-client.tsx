@@ -25,6 +25,7 @@ import {
   ChevronRight,
   ArrowDown,
   PanelLeftOpen,
+  Home,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,12 +43,23 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
+interface AgentMetadata {
+  agentId?: string;
+  agentName?: string;
+  agentEmoji?: string;
+  agentColor?: string;
+  agentRole?: string;
+  isConclusion?: boolean;
+  mode?: string;
+  status?: string;
+}
+
 interface ChatMessage {
   id: string;
-  role: "USER" | "ASSISTANT" | "SYSTEM";
+  role: "USER" | "ASSISTANT" | "SYSTEM" | string;
   content: string;
   createdAt: Date | string;
-  metadata?: unknown;
+  metadata?: AgentMetadata | Record<string, unknown> | unknown;
 }
 
 interface ChatSession {
@@ -62,37 +74,48 @@ interface ChatClientProps {
   initialMessages: ChatMessage[];
 }
 
+// ── Agent color map ──
+
+const agentColorMap: Record<string, { bg: string; text: string; border: string }> = {
+  violet: { bg: "bg-violet-500/15", text: "text-violet-400", border: "border-violet-500/20" },
+  blue: { bg: "bg-blue-500/15", text: "text-blue-400", border: "border-blue-500/20" },
+  rose: { bg: "bg-rose-500/15", text: "text-rose-400", border: "border-rose-500/20" },
+  emerald: { bg: "bg-emerald-500/15", text: "text-emerald-400", border: "border-emerald-500/20" },
+  amber: { bg: "bg-amber-500/15", text: "text-amber-400", border: "border-amber-500/20" },
+  cyan: { bg: "bg-cyan-500/15", text: "text-cyan-400", border: "border-cyan-500/20" },
+};
+
 // ── Suggested prompts ──
 
 const suggestedPrompts = [
   {
     icon: Music,
-    label: "Analise minha presença digital",
-    prompt: "Pesquise sobre a presença digital da Débora Kailany em todas as plataformas e me dê um diagnóstico completo",
+    label: "Presença digital",
+    prompt: "Analisem minha presença digital em todas as plataformas e me deem um diagnóstico completo com plano de ação",
   },
   {
     icon: TrendingUp,
-    label: "Plano de crescimento",
-    prompt: "Monte um plano de crescimento para a Débora Kailany nos próximos 30 dias com ações semanais",
+    label: "Crescimento",
+    prompt: "Montem um plano de crescimento para os próximos 30 dias com ações semanais detalhadas",
   },
   {
     icon: Target,
-    label: "Estratégia de lançamento",
-    prompt: "Crie uma estratégia completa de lançamento de música para a Débora Kailany com cronograma de pré-save até pós-lançamento",
+    label: "Lançamento",
+    prompt: "Criem uma estratégia completa de lançamento de música com cronograma de pré-save até pós-lançamento",
   },
   {
     icon: Lightbulb,
-    label: "Ideias de conteúdo",
-    prompt: "Me dê 10 ideias de conteúdo para os Reels e TikTok da Débora Kailany que podem viralizar no nicho gospel",
+    label: "Conteúdo",
+    prompt: "Me deem 10 ideias de conteúdo para Reels e TikTok que podem viralizar no meu nicho",
   },
   {
     icon: UserCog,
-    label: "Configurar preferências",
+    label: "Preferências",
     prompt: "/artist-preferences",
   },
   {
     icon: Briefcase,
-    label: "Planejar carreira",
+    label: "Carreira",
     prompt: "/production-artist",
   },
 ];
@@ -253,6 +276,134 @@ function timeAgo(date: Date | string): string {
   return `${Math.floor(days / 30)}m`;
 }
 
+// ── Team gathering animation ──
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Bom dia";
+  if (h < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
+const teamArrivalSets = [
+  [
+    { emoji: "📱", name: "Ana", color: "text-violet-400", message: "Oi Déb! Cheguei, tava deixando o Miguel na creche e quase esqueci a bolsa lá kkk" },
+    { emoji: "📊", name: "Lucas", color: "text-blue-400", message: "Já puxei os números de ontem, vem coisa boa aí hein" },
+    { emoji: "🎯", name: "Marina", color: "text-rose-400", message: "Presente! Cronograma aberto, café na mesa. Bora!" },
+    { emoji: "🎵", name: "Rafael", color: "text-emerald-400", message: "Aee desculpa o atraso galera... o despertador traiu de novo 😅" },
+    { emoji: "💡", name: "Júlia", color: "text-amber-400", message: "Genteee cheguei!! Tô CHEIA de ideias pra hoje!" },
+    { emoji: "💼", name: "Pedro", color: "text-cyan-400", message: "Café na mão, experiência no currículo. Vamos trabalhar" },
+  ],
+  [
+    { emoji: "📊", name: "Lucas", color: "text-blue-400", message: "Cheguei primeiro hoje hein! Tô vendo umas métricas interessantes..." },
+    { emoji: "💼", name: "Pedro", color: "text-cyan-400", message: "Estou aqui, só terminando de ler umas notícias do mercado" },
+    { emoji: "📱", name: "Ana", color: "text-violet-400", message: "Opa! Desculpa, o trânsito tava impossível. Mas já vi umas trends novas no caminho!" },
+    { emoji: "🎯", name: "Marina", color: "text-rose-400", message: "To aqui! Já atualizei o quadro de tarefas. Alguém viu o Rafael?" },
+    { emoji: "🎵", name: "Rafael", color: "text-emerald-400", message: "Mano eu tava ouvindo umas playlists e perdi a hora... mas confia que trouxe insights bons" },
+    { emoji: "💡", name: "Júlia", color: "text-amber-400", message: "Cheguei cheguei! Gente, vocês viram aquele TikTok que viralizou ontem??" },
+  ],
+  [
+    { emoji: "💡", name: "Júlia", color: "text-amber-400", message: "Oii Déb!! Gente eu já tô com 3 ideias de Reels prontas na cabeça" },
+    { emoji: "📱", name: "Ana", color: "text-violet-400", message: "Calma Jú kk deixa a gente sentar primeiro! Oi Déb!" },
+    { emoji: "📊", name: "Lucas", color: "text-blue-400", message: "Eae pessoal! Trouxe os dados fresquinhos pra discussão" },
+    { emoji: "🎵", name: "Rafael", color: "text-emerald-400", message: "Perdão a demora, tava analisando umas playlists novas que saíram hoje" },
+    { emoji: "💼", name: "Pedro", color: "text-cyan-400", message: "Bom, já que estamos todos aqui... alguém quer café?" },
+    { emoji: "🎯", name: "Marina", color: "text-rose-400", message: "Eu aceito! Já organizei a pauta de hoje. Tá tudo anotado aqui" },
+  ],
+];
+
+function getTeamArrival() {
+  const idx = Math.floor(Math.random() * teamArrivalSets.length);
+  return teamArrivalSets[idx];
+}
+
+function TeamGatheringAnimation() {
+  const [visibleCount, setVisibleCount] = useState(0);
+  const [teamMessages] = useState(() => getTeamArrival());
+  const [greeting] = useState(() => getGreeting());
+
+  useEffect(() => {
+    const timers: NodeJS.Timeout[] = [];
+    for (let i = 0; i < teamMessages.length; i++) {
+      timers.push(
+        setTimeout(() => setVisibleCount(i + 1), 400 + i * 450)
+      );
+    }
+    return () => timers.forEach(clearTimeout);
+  }, [teamMessages.length]);
+
+  return (
+    <div className="space-y-2.5 pt-3">
+      {/* Greeting */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-zinc-900/80 to-zinc-900/40 px-4 py-3"
+      >
+        <motion.span
+          animate={{ rotate: [0, 14, -8, 14, -4, 10, 0] }}
+          transition={{ duration: 1.5, ease: "easeInOut" }}
+          className="text-xl"
+        >
+          👋
+        </motion.span>
+        <div>
+          <p className="text-[13px] font-medium text-zinc-200">
+            {greeting}, Débora Kailany!
+          </p>
+          <p className="text-[11px] text-zinc-500">
+            Que bom ter você aqui! A galera já tá chegando...
+          </p>
+        </div>
+      </motion.div>
+
+      {/* Agents arriving one by one */}
+      <AnimatePresence>
+        {teamMessages.slice(0, visibleCount).map((agent) => (
+          <motion.div
+            key={agent.name}
+            initial={{ opacity: 0, x: -16, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="flex items-start gap-2.5 pl-1"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 500, damping: 20, delay: 0.05 }}
+              className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-zinc-800/80"
+            >
+              <span className="text-[11px]">{agent.emoji}</span>
+            </motion.div>
+            <div className="min-w-0 flex-1">
+              <span className={`text-[11px] font-semibold ${agent.color}`}>{agent.name}</span>
+              <p className="text-[12px] leading-relaxed text-zinc-500">{agent.message}</p>
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
+      {/* Loading state after all arrive */}
+      {visibleCount >= teamMessages.length && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="flex items-center gap-2 py-1 pl-9"
+        >
+          <span className="size-1.5 animate-bounce rounded-full bg-zinc-600 [animation-delay:0ms]" />
+          <span className="size-1.5 animate-bounce rounded-full bg-zinc-600 [animation-delay:150ms]" />
+          <span className="size-1.5 animate-bounce rounded-full bg-zinc-600 [animation-delay:300ms]" />
+          <span className="ml-1 text-[11px] italic text-zinc-600">
+            organizando as ideias...
+          </span>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
 // ── Main component ──
 
 export function ChatClient({
@@ -263,6 +414,8 @@ export function ChatClient({
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [sessions, setSessions] = useState<ChatSession[]>(initialSessions);
+  // Keep sessions in sync when server data changes
+  useEffect(() => { setSessions(initialSessions); }, [initialSessions]);
   const [sessionId, setSessionId] = useState<string | null>(currentSessionId);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -270,11 +423,30 @@ export function ChatClient({
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [isDeleting, startDeleting] = useTransition();
   const [showCommandHint, setShowCommandHint] = useState(false);
+  const [activeAgentName, setActiveAgentName] = useState<string | null>(null);
+  const [showGathering, setShowGathering] = useState(false);
+  const showGatheringRef = useRef(false);
+  const gatheringTimerRef = useRef<NodeJS.Timeout | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const isStreamingRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sync state when navigating between sessions (e.g. "Nova conversa" button)
+  useEffect(() => {
+    setSessionId(currentSessionId);
+    setMessages(initialMessages);
+    setInput("");
+    setIsSending(false);
+    setShowGathering(false);
+    showGatheringRef.current = false;
+    setActiveAgentName(null);
+    if (gatheringTimerRef.current) {
+      clearTimeout(gatheringTimerRef.current);
+      gatheringTimerRef.current = null;
+    }
+  }, [currentSessionId, initialMessages]);
 
   // Detect active mode
   const activeMode = (() => {
@@ -337,6 +509,8 @@ export function ChatClient({
     setMessages((prev) => [...prev, tempUserMsg]);
     setInput("");
     setIsSending(true);
+    setShowGathering(true);
+    showGatheringRef.current = true;
     isStreamingRef.current = false;
     isNearBottomRef.current = true;
 
@@ -385,14 +559,11 @@ export function ChatClient({
       if (!reader) throw new Error("No reader");
 
       const decoder = new TextDecoder();
-      let accumulated = "";
       isStreamingRef.current = true;
 
-      const streamMsgId = `stream-${Date.now()}`;
-      setMessages((prev) => [
-        ...prev,
-        { id: streamMsgId, role: "ASSISTANT", content: "", createdAt: new Date().toISOString() },
-      ]);
+      // Track current streaming agent
+      let currentStreamId: string | null = null;
+      const accumulatedByAgent: Record<string, string> = {};
 
       while (true) {
         const { done, value } = await reader.read();
@@ -408,25 +579,71 @@ export function ChatClient({
 
           try {
             const event = JSON.parse(jsonStr) as
-              | { type: "delta"; content: string }
-              | { type: "done"; message: ChatMessage }
+              | { type: "agent_start"; agentId: string; name: string; emoji: string; role: string; color: string; isConclusion?: boolean }
+              | { type: "delta"; content: string; agentId?: string }
+              | { type: "agent_done"; agentId: string }
+              | { type: "done"; messages: ChatMessage[] }
               | { type: "error"; error: string };
 
-            if (event.type === "delta") {
-              accumulated += event.content;
+            if (event.type === "agent_start") {
+              const streamId = `stream-${event.agentId}-${Date.now()}`;
+              currentStreamId = streamId;
+              accumulatedByAgent[streamId] = "";
+
+              // If gathering animation is still showing, wait for all agents to arrive + reading time
+              if (showGatheringRef.current) {
+                await new Promise<void>((resolve) => {
+                  // 6 agents arrive over ~3s (400ms + 5*450ms), then 5s to read = ~8s total
+                  const waitTime = 8000;
+                  gatheringTimerRef.current = setTimeout(() => {
+                    setShowGathering(false);
+                    showGatheringRef.current = false;
+                    // Wait for exit animation to finish
+                    setTimeout(resolve, 400);
+                  }, waitTime);
+                });
+              }
+
+              setActiveAgentName(`${event.emoji} ${event.name}${event.isConclusion ? " (Conclusão)" : ""}`);
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: streamId,
+                  role: "ASSISTANT",
+                  content: "",
+                  createdAt: new Date().toISOString(),
+                  metadata: {
+                    agentId: event.agentId,
+                    agentName: event.name,
+                    agentEmoji: event.emoji,
+                    agentColor: event.color,
+                    agentRole: event.role,
+                    isConclusion: event.isConclusion,
+                  },
+                },
+              ]);
+            } else if (event.type === "delta" && currentStreamId) {
+              accumulatedByAgent[currentStreamId] = (accumulatedByAgent[currentStreamId] ?? "") + event.content;
+              const accumulated = accumulatedByAgent[currentStreamId];
+              const sid = currentStreamId;
               setMessages((prev) =>
                 prev.map((m) =>
-                  m.id === streamMsgId ? { ...m, content: accumulated } : m
+                  m.id === sid ? { ...m, content: accumulated } : m
                 )
               );
+            } else if (event.type === "agent_done") {
+              setActiveAgentName(null);
             } else if (event.type === "done") {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === streamMsgId ? (event.message as ChatMessage) : m
-                )
-              );
+              // Replace all stream messages with saved DB messages
+              const savedMessages = event.messages as ChatMessage[];
+              setMessages((prev) => {
+                const nonStream = prev.filter((m) => !m.id.startsWith("stream-"));
+                return [...nonStream, ...savedMessages];
+              });
+              setActiveAgentName(null);
             } else if (event.type === "error") {
-              setMessages((prev) => prev.filter((m) => m.id !== streamMsgId));
+              setMessages((prev) => prev.filter((m) => !m.id.startsWith("stream-")));
+              setActiveAgentName(null);
             }
           } catch {
             // skip
@@ -437,9 +654,17 @@ export function ChatClient({
       setMessages((prev) =>
         prev.filter((m) => !m.id.startsWith("temp-") && !m.id.startsWith("stream-"))
       );
+      setActiveAgentName(null);
     } finally {
       setIsSending(false);
       isStreamingRef.current = false;
+      setActiveAgentName(null);
+      setShowGathering(false);
+      showGatheringRef.current = false;
+      if (gatheringTimerRef.current) {
+        clearTimeout(gatheringTimerRef.current);
+        gatheringTimerRef.current = null;
+      }
     }
   }
 
@@ -460,7 +685,6 @@ export function ChatClient({
   }
 
   const isEmpty = messages.length === 0;
-  const hasStreamContent = messages.some((m) => m.id.startsWith("stream-") && m.content);
 
   // ── Sessions sidebar content ──
   const sessionsPanel = (
@@ -575,7 +799,14 @@ export function ChatClient({
 
           {/* ── Top bar ── */}
           <div className="flex shrink-0 items-center justify-between border-b border-zinc-800/60 px-3 py-2.5 md:border-0 md:px-0 md:pb-2 md:pt-0">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1.5">
+              {/* Mobile: home button */}
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="flex size-9 items-center justify-center rounded-lg text-zinc-400 transition hover:bg-zinc-800 md:hidden"
+              >
+                <Home className="size-5" />
+              </button>
               {/* Mobile: sidebar toggle */}
               <button
                 onClick={() => setShowSidebar(true)}
@@ -612,7 +843,7 @@ export function ChatClient({
             >
               {isEmpty ? (
                 /* ── Empty state ── */
-                <div className="flex h-full flex-col items-center justify-center gap-5 px-5">
+                <div className="flex h-full flex-col items-center justify-center gap-4 px-3 sm:gap-5 sm:px-5">
                   <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -621,12 +852,34 @@ export function ChatClient({
                   >
                     <Sparkles className="size-8 text-zinc-400" />
                   </motion.div>
-                  <div className="max-w-md space-y-2 text-center">
-                    <h2 className="text-lg font-semibold text-zinc-100">
-                      Sua equipe está pronta
+                  <div className="max-w-md space-y-2 text-center sm:space-y-2.5">
+                    <h2 className="text-base font-semibold text-zinc-100 sm:text-lg">
+                      E aí, Débs! 👋
                     </h2>
-                    <p className="text-[13px] leading-relaxed text-zinc-500">
-                      Marketing, social media, analista de dados e especialista em Spotify. Tudo sob medida para você.
+                    <div className="flex items-center justify-center gap-1.5">
+                      {[
+                        { emoji: "📱", label: "Ana" },
+                        { emoji: "📊", label: "Lucas" },
+                        { emoji: "🎯", label: "Marina" },
+                        { emoji: "🎵", label: "Rafael" },
+                        { emoji: "💡", label: "Júlia" },
+                        { emoji: "💼", label: "Pedro" },
+                      ].map((agent, i) => (
+                        <motion.div
+                          key={agent.label}
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.3 + i * 0.08, type: "spring", stiffness: 400, damping: 15 }}
+                          className="flex flex-col items-center gap-0.5"
+                          title={agent.label}
+                        >
+                          <span className="text-base sm:text-lg">{agent.emoji}</span>
+                          <span className="text-[8px] text-zinc-600 sm:text-[9px]">{agent.label}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] leading-relaxed text-zinc-500 sm:text-[12px]">
+                      Sua equipe de marketing tá online e pronta pra trabalhar. É só mandar que a gente se organiza!
                     </p>
                   </div>
 
@@ -634,7 +887,7 @@ export function ChatClient({
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2, duration: 0.4 }}
-                    className="grid w-full max-w-md grid-cols-1 gap-2 sm:grid-cols-2"
+                    className="grid w-full max-w-md grid-cols-2 gap-1.5 sm:gap-2"
                   >
                     {suggestedPrompts.map((item) => {
                       const Icon = item.icon;
@@ -643,12 +896,12 @@ export function ChatClient({
                           key={item.label}
                           onClick={() => handleSend(item.prompt)}
                           disabled={isSending}
-                          className="group flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-3 text-left transition active:scale-[0.98] hover:border-zinc-700 hover:bg-zinc-800/50"
+                          className="group flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/50 p-2 text-left transition active:scale-[0.98] hover:border-zinc-700 hover:bg-zinc-800/50 sm:gap-3 sm:p-3"
                         >
-                          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 transition group-hover:bg-violet-500/20">
-                            <Icon className="size-4 text-violet-400" />
+                          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 transition group-hover:bg-violet-500/20 sm:size-8">
+                            <Icon className="size-3.5 text-violet-400 sm:size-4" />
                           </div>
-                          <span className="text-[13px] font-medium text-zinc-400 transition group-hover:text-zinc-200">
+                          <span className="text-[11px] font-medium leading-tight text-zinc-400 transition group-hover:text-zinc-200 sm:text-[13px]">
                             {item.label}
                           </span>
                         </button>
@@ -670,50 +923,103 @@ export function ChatClient({
               ) : (
                 /* ── Messages list ── */
                 <div className="mx-auto max-w-3xl px-4 py-5 sm:px-6">
-                  {messages.map((msg) => (
-                    <div key={msg.id} className="mb-5 last:mb-0">
-                      {msg.role === "USER" ? (
-                        /* User message */
-                        <div className="flex justify-end">
-                          <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-zinc-800 px-4 py-2.5 sm:max-w-[70%]">
-                            <p className="whitespace-pre-wrap break-words text-[14px] leading-[1.6] text-zinc-100">
-                              {msg.content}
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        /* Assistant message — no bubble, like ChatGPT */
-                        <div className="flex gap-3">
-                          <div className="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-zinc-800">
-                            <Bot className="size-4 text-zinc-400" />
-                          </div>
-                          <div className="min-w-0 flex-1 overflow-hidden pt-0.5">
-                            {msg.content ? (
-                              <RichMessage content={msg.content} />
-                            ) : (
-                              <div className="flex items-center gap-1.5 py-3">
-                                <span className="size-2 animate-bounce rounded-full bg-zinc-600 [animation-delay:0ms]" />
-                                <span className="size-2 animate-bounce rounded-full bg-zinc-600 [animation-delay:150ms]" />
-                                <span className="size-2 animate-bounce rounded-full bg-zinc-600 [animation-delay:300ms]" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {messages.map((msg) => {
+                    const meta = msg.metadata as AgentMetadata | null;
+                    const agentColor = meta?.agentColor ? agentColorMap[meta.agentColor] : null;
 
-                  {/* Typing indicator */}
-                  {isSending && !hasStreamContent && !messages.some((m) => m.id.startsWith("stream-")) && (
-                    <div className="flex gap-3 pt-2">
+                    return (
+                      <motion.div
+                        key={msg.id}
+                        initial={msg.id.startsWith("stream-") || msg.id.startsWith("temp-") ? { opacity: 0, y: 8 } : false}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="mb-5 last:mb-0"
+                      >
+                        {msg.role === "USER" ? (
+                          /* User message */
+                          <div className="flex justify-end">
+                            <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-zinc-800 px-4 py-2.5 sm:max-w-[70%]">
+                              <p className="whitespace-pre-wrap break-words text-[14px] leading-[1.6] text-zinc-100">
+                                {msg.content}
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Agent message */
+                          <div className="flex gap-3">
+                            {/* Agent avatar */}
+                            <div className={`mt-1 flex size-7 shrink-0 items-center justify-center rounded-full ${agentColor ? agentColor.bg : "bg-zinc-800"}`}>
+                              {meta?.agentEmoji ? (
+                                <span className="text-sm leading-none">{meta.agentEmoji}</span>
+                              ) : (
+                                <Bot className="size-4 text-zinc-400" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1 overflow-hidden pt-0.5">
+                              {/* Agent name & role */}
+                              {meta?.agentName && (
+                                <div className="mb-1 flex items-center gap-2">
+                                  <span className={`text-[12px] font-semibold ${agentColor ? agentColor.text : "text-zinc-400"}`}>
+                                    {meta.agentName}
+                                  </span>
+                                  <span className="text-[10px] text-zinc-600">
+                                    {meta.agentRole}
+                                  </span>
+                                  {meta.isConclusion && (
+                                    <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 border-zinc-700 text-[9px] px-1.5 py-0">
+                                      Conclusão
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+                              {msg.content ? (
+                                <RichMessage content={msg.content} />
+                              ) : (
+                                <div className="flex items-center gap-1.5 py-3">
+                                  <span className="size-2 animate-bounce rounded-full bg-zinc-600 [animation-delay:0ms]" />
+                                  <span className="size-2 animate-bounce rounded-full bg-zinc-600 [animation-delay:150ms]" />
+                                  <span className="size-2 animate-bounce rounded-full bg-zinc-600 [animation-delay:300ms]" />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+
+                  {/* Team gathering animation — shows agents "arriving" */}
+                  <AnimatePresence>
+                    {showGathering && (
+                      <motion.div
+                        initial={{ opacity: 1 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.4 }}
+                      >
+                        <TeamGatheringAnimation />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Active agent typing indicator */}
+                  {isSending && activeAgentName && messages.some((m) => m.id.startsWith("stream-")) && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex gap-3 pt-2"
+                    >
                       <div className="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-zinc-800">
-                        <Bot className="size-4 text-zinc-400" />
+                        <span className="text-sm leading-none">{activeAgentName.split(" ")[0]}</span>
                       </div>
                       <div className="flex items-center gap-2 pt-1">
-                        <Loader2 className="size-4 animate-spin text-zinc-500" />
-                        <span className="text-[13px] text-zinc-500">Analisando...</span>
+                        <span className="size-2 animate-bounce rounded-full bg-zinc-600 [animation-delay:0ms]" />
+                        <span className="size-2 animate-bounce rounded-full bg-zinc-600 [animation-delay:150ms]" />
+                        <span className="size-2 animate-bounce rounded-full bg-zinc-600 [animation-delay:300ms]" />
+                        <span className="ml-1 text-[12px] text-zinc-600">
+                          {activeAgentName} digitando...
+                        </span>
                       </div>
-                    </div>
+                    </motion.div>
                   )}
                 </div>
               )}

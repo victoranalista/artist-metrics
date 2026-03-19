@@ -228,3 +228,4 @@ model ChatMessage {
   @@index([sessionId, createdAt])
   @@index([artistId, createdAt])
 }
+
