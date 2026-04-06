@@ -9,13 +9,14 @@ import {
   MessageSquare,
   Upload,
   Link2,
+  Video,
 } from "lucide-react";
 
 const mobileNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/metrics", label: "Métricas", icon: BarChart3 },
+  { href: "/shorts", label: "Shorts", icon: Video },
   { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/upload", label: "Upload", icon: Upload },
   { href: "/connections", label: "Conexões", icon: Link2 },
 ];
 

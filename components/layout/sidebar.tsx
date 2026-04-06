@@ -11,6 +11,7 @@ import {
   Upload,
   MessageSquare,
   Link2,
+  Video,
   Music2,
   PanelLeftClose,
   PanelLeft,
@@ -33,6 +34,7 @@ const mainNavItems = [
 ];
 
 const toolNavItems = [
+  { href: "/shorts", label: "Shorts", icon: Video },
   { href: "/upload", label: "Upload", icon: Upload },
   { href: "/chat", label: "Chat IA", icon: MessageSquare },
   { href: "/connections", label: "Conexões", icon: Link2 },

@@ -50,3 +50,6 @@ next-env.d.ts
 
 .vercel
 public/artist/CLIPE-*.webp
+
+# shorts automation data
+/data/
