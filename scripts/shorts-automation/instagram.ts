@@ -136,6 +136,31 @@ function getHardcodedReels(): Reel[] {
   ];
 }
 
+/**
+ * Procura reels novos no perfil e adiciona ao catalogo. Devolve quantos entraram.
+ *
+ * Falha de proposito em silencio: a API publica do Instagram responde 429 com
+ * frequencia e o extrator de perfil do yt-dlp esta quebrado. Nao achar nada
+ * novo nao pode derrubar a campanha — ela apenas segue com o catalogo atual.
+ */
+export async function refreshCatalog(): Promise<number> {
+  try {
+    const encontrados = await scrapeReelsFromProfile();
+    if (encontrados.length === 0) return 0;
+
+    const existentes = await getReelsList();
+    const conhecidos = new Set(existentes.map((r) => r.id));
+    const novos = encontrados.filter((r) => !conhecidos.has(r.id) && !EXCLUDED_REELS[r.id]);
+    if (novos.length === 0) return 0;
+
+    await mkdir(join(__dirname, "../../data"), { recursive: true });
+    await writeFile(REELS_CACHE, JSON.stringify([...existentes, ...novos], null, 2));
+    return novos.length;
+  } catch {
+    return 0;
+  }
+}
+
 /** Add new reel URLs to the cache */
 export async function addReelsToCache(reels: Reel[]): Promise<void> {
   const existing = await getReelsList();

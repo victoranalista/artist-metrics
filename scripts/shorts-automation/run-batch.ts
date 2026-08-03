@@ -21,11 +21,12 @@
  */
 
 import "dotenv/config";
-import { getReelsList, downloadReel, type Reel } from "./instagram";
+import { getReelsList, downloadReel, refreshCatalog, type Reel } from "./instagram";
 import { getCaption, cachedCount } from "./caption-cache";
 import { uploadShort, getSlotTime, checkQuota, getOccupiedSlots, PUBLISH_HOURS_BRT } from "./youtube";
 import {
-  getCampaign, campaignStartDate, totalSlots, CAMPAIGN_END, acquireLock, releaseLock,
+  getCampaign, campaignStartDate, campaignEndDate, totalSlots, extendCampaign,
+  acquireLock, releaseLock, type Campaign,
 } from "./campaign";
 
 const SLOTS_PER_DAY = PUBLISH_HOURS_BRT.length;
@@ -89,10 +90,15 @@ async function main() {
     process.on("SIGTERM", soltar);
   }
 
-  const catalog = await getReelsList();
-  const campaign = await getCampaign();
+  // Reels novos no perfil entram no catalogo antes de calcular a fila.
+  if (!dryRun && !statusOnly) {
+    const novos = await refreshCatalog();
+    if (novos > 0) console.log(`${novos} reel(s) novo(s) encontrado(s) no perfil.\n`);
+  }
+
+  let catalog = await getReelsList();
+  let campaign = await getCampaign();
   const start = campaignStartDate(campaign);
-  const total = totalSlots(campaign, SLOTS_PER_DAY);
 
   if (catalog.length === 0) {
     console.error("Catalogo de reels vazio. Rode o scraper antes.");
@@ -103,14 +109,28 @@ async function main() {
   const occupied = dryRun ? new Set<number>() : await getOccupiedSlots(start);
   const now = new Date();
 
-  // Slots livres e ainda no futuro — inclui buracos deixados por falhas
-  // anteriores, que assim voltam a ser preenchidos.
-  const pending: number[] = [];
-  for (let i = 0; i < total; i++) {
-    if (occupied.has(i)) continue;
-    if (getSlotTime(start, i) <= now) continue;
-    pending.push(i);
+  /** Slots livres e ainda no futuro — inclui buracos de falhas anteriores. */
+  const livres = (c: Campaign): number[] => {
+    const fila: number[] = [];
+    for (let i = 0; i < totalSlots(c, SLOTS_PER_DAY); i++) {
+      if (occupied.has(i)) continue;
+      if (getSlotTime(start, i) <= now) continue;
+      fila.push(i);
+    }
+    return fila;
+  };
+
+  let pending = livres(campaign);
+
+  // Fila cheia ate o horizonte: avanca um ano e recomeca, em vez de parar.
+  if (pending.length === 0 && !statusOnly) {
+    campaign = await extendCampaign(campaign);
+    pending = livres(campaign);
+    console.log(`Campanha completa até ${campaign.endDate.split("-").reverse().join("/")}: horizonte estendido, ${pending.length} slots novos.\n`);
+    catalog = await getReelsList();
   }
+
+  const total = totalSlots(campaign, SLOTS_PER_DAY);
 
   if (statusOnly) {
     console.log(`
@@ -122,14 +142,14 @@ async function main() {
 ║  Já agendados:      ${String(occupied.size).padEnd(37)}║
 ║  Faltam:            ${String(pending.length).padEnd(37)}║
 ║  Próximo slot:      ${(pending[0] !== undefined ? getSlotTime(start, pending[0]).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—").padEnd(37)}║
-║  Último slot:       ${CAMPAIGN_END.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }).padEnd(37)}║
+║  Último slot:       ${campaignEndDate(campaign).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }).padEnd(37)}║
 ╚══════════════════════════════════════════════════════════════╝
     `);
     return;
   }
 
   if (pending.length === 0) {
-    console.log(`Campanha completa: ${occupied.size} slots agendados até ${CAMPAIGN_END.toLocaleDateString("pt-BR")}.`);
+    console.log(`Campanha completa: ${occupied.size} slots agendados.`);
     return;
   }
 
@@ -183,16 +203,12 @@ async function main() {
     if (dryRun) {
       caption = `[IA] ${original.slice(0, 55)} #gospel #louvor #shorts`;
     } else {
-      try {
-        const result = await getCaption(slot.reel.id, original);
-        caption = result.caption;
-        if (!result.fromCache) newCaptions++;
-      } catch (err: any) {
-        // Sem legenda boa nao ha upload: os videos ja agendados continuam
-        // valendo e o agendador retoma na proxima execucao.
-        console.error(`\nIA indisponivel: ${err.message}`);
-        console.error(`Parando com ${done} upload(s) feitos nesta execucao.`);
-        break;
+      // Nunca lanca: sem IA cai na legenda original do reel.
+      const result = await getCaption(slot.reel.id, original);
+      caption = result.caption;
+      if (!result.fromCache) {
+        newCaptions++;
+        if (!result.fromAI) console.log(`  (legenda do reel ${slot.reel.id} veio do Instagram, IA indisponível)`);
       }
     }
     const when = slot.time.toLocaleString("pt-BR", {

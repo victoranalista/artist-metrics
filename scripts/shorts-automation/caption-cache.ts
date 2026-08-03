@@ -27,24 +27,39 @@ async function load(): Promise<Cache> {
   return memo;
 }
 
+/** Legenda derivada do texto do proprio reel, quando a IA nao esta disponivel. */
+function daLegendaOriginal(originalCaption: string): string {
+  const base = (originalCaption || "Louvor gospel emocionante").split("\n")[0].trim();
+  const tags = " #gospel #louvor #shorts";
+  return `${base.slice(0, 100 - tags.length)}${tags}`;
+}
+
 /**
- * Legenda do reel, gerada pela IA na primeira vez e reusada em toda repeticao.
+ * Legenda do reel, gerada uma vez e reusada em toda repeticao dele.
  *
- * Deixa o erro da IA subir de proposito. Cair num fallback generico aqui
- * gravaria uma legenda ruim no cache e ela seria reusada nas ~26 repeticoes
- * daquele reel — e o pedido era legenda viral. Melhor a execucao parar e o
- * agendador tentar de novo amanha: o que ja foi gerado esta no cache, entao
- * nada se perde.
+ * Sem IA disponivel cai na legenda original do Instagram — texto da propria
+ * artista, aprovado pelo usuario para esse uso — e grava no cache mesmo assim.
+ * Deixar a execucao abortar aqui travaria a renovacao automatica: todo reel
+ * novo que aparecesse no perfil pararia a campanha ate alguem por credito na
+ * conta da OpenAI, e o objetivo e justamente nao depender de ninguem.
  */
-export async function getCaption(reelId: string, originalCaption: string): Promise<{ caption: string; fromCache: boolean }> {
+export async function getCaption(reelId: string, originalCaption: string): Promise<{ caption: string; fromCache: boolean; fromAI: boolean }> {
   const cache = await load();
 
-  if (cache[reelId]) return { caption: cache[reelId], fromCache: true };
+  if (cache[reelId]) return { caption: cache[reelId], fromCache: true, fromAI: false };
 
-  const caption = await generateShortCaption(originalCaption || "Louvor gospel emocionante");
+  let caption: string;
+  let fromAI = true;
+  try {
+    caption = await generateShortCaption(originalCaption || "Louvor gospel emocionante");
+  } catch {
+    caption = daLegendaOriginal(originalCaption);
+    fromAI = false;
+  }
+
   cache[reelId] = caption;
   await writeFile(CACHE_FILE, JSON.stringify(cache, null, 2));
-  return { caption, fromCache: false };
+  return { caption, fromCache: false, fromAI };
 }
 
 /** Quantos reels ja tem legenda definitiva. */
