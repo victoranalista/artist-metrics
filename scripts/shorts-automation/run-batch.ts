@@ -60,7 +60,8 @@ async function main() {
   const dryRun = args.includes("--dry-run");
   const statusOnly = args.includes("--status");
   const batchIdx = args.indexOf("--batch");
-  const batchSize = batchIdx !== -1 ? parseInt(args[batchIdx + 1]) : MAX_UPLOADS_PER_RUN;
+  // Sem --batch, tenta o maximo: quem para a execucao e o 403 de quota da API.
+  const batchSize = batchIdx !== -1 ? parseInt(args[batchIdx + 1]) : Infinity;
 
   checkEnv(dryRun || statusOnly);
 
@@ -106,7 +107,7 @@ async function main() {
     skipped++;
   }
 
-  const count = Math.min(batchSize, MAX_UPLOADS_PER_RUN, total - cursor);
+  const count = Math.min(batchSize, total - cursor);
 
   console.log(`
 ╔══════════════════════════════════════════════════════════════╗
@@ -124,7 +125,7 @@ async function main() {
 
   // 1. Check YouTube API
   if (!dryRun) {
-    console.log("[1/4] Verificando YouTube API...");
+    console.log("[1/3] Verificando YouTube API...");
     const ok = await checkQuota();
     if (!ok) { console.error("YouTube API indisponível."); process.exit(1); }
     console.log("  OK\n");
@@ -136,26 +137,30 @@ async function main() {
     return { index, time: getSlotTime(start, index), reel: catalog[index % catalog.length] };
   });
 
-  // 3. Generate captions
-  console.log(`[2/4] ${dryRun ? "Legendas (simuladas, sem chamar a IA)" : "Gerando legendas..."}`);
-  const captions = new Map<number, string>();
-  for (const slot of slots) {
-    const caption = dryRun
-      ? `[IA] ${(slot.reel.caption || "Louvor gospel emocionante").slice(0, 55)} #gospel #louvor #shorts`
-      : await generateShortCaption(slot.reel.caption || "Louvor gospel emocionante");
-    captions.set(slot.index, caption);
-    console.log(`  slot ${slot.index} (${slot.reel.id}): ${caption} (${caption.length})`);
-    // Gentle delay between AI calls
-    if (!dryRun) await sleep(1000);
-  }
-
-  // 4. Download, upload, delete - one at a time
-  console.log("\n[3/4] Download + Upload + Cleanup...");
+  // 3. Legenda + download + upload, um slot por vez.
+  //
+  // A legenda sai logo antes do upload de proposito: como a execucao vai ate a
+  // quota estourar, gerar todas de uma vez queimaria centenas de chamadas de IA
+  // para slots que a quota nunca alcancaria nesta execucao.
+  console.log(`[2/3] ${dryRun ? "Simulando" : "Legenda + download + upload"}...`);
   let filled = cursor;
 
   for (const slot of slots) {
     const isImmediate = slot.time <= new Date();
-    const caption = captions.get(slot.index)!;
+    const original = slot.reel.caption || "Louvor gospel emocionante";
+    // Uma falha da OpenAI nao pode derrubar o lote inteiro: cai na legenda
+    // original do reel, que ja e um texto proprio da artista.
+    let caption: string;
+    if (dryRun) {
+      caption = `[IA] ${original.slice(0, 55)} #gospel #louvor #shorts`;
+    } else {
+      try {
+        caption = await generateShortCaption(original);
+      } catch (err: any) {
+        caption = `${original.slice(0, 60)} #gospel #louvor #shorts`.slice(0, 100);
+        console.error(`  IA falhou no slot ${slot.index} (${err.message}), usando legenda original`);
+      }
+    }
     const when = isImmediate
       ? "AGORA"
       : slot.time.toLocaleString("pt-BR", {
