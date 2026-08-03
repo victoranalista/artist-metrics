@@ -46,13 +46,23 @@ function ytdlp(): string {
 
 // ── Reel list management ──
 
+/**
+ * Reels que nao devem virar Short: o canal e de louvor, e estes nao sao.
+ * Fica aqui e nao so no cache porque um novo scrape do perfil traria de volta.
+ */
+const EXCLUDED_REELS: Record<string, string> = {
+  DQnI_eODnbt: "publicidade paga (salao Espelicutte)",
+  DPtjn5QDZHD: "meme, marcado #casamento #trend #meme #reels",
+  DQNMwaHDmKw: "vlog de viagem",
+};
+
 /** Known reels from the profile - updated by scrape or manually */
 export async function getReelsList(): Promise<Reel[]> {
   await mkdir(join(__dirname, "../../data"), { recursive: true });
 
   if (existsSync(REELS_CACHE)) {
     const content = await readFile(REELS_CACHE, "utf-8");
-    const cached = JSON.parse(content) as Reel[];
+    const cached = (JSON.parse(content) as Reel[]).filter((r) => !EXCLUDED_REELS[r.id]);
     if (cached.length > 0) return cached;
   }
 
@@ -130,7 +140,7 @@ function getHardcodedReels(): Reel[] {
 export async function addReelsToCache(reels: Reel[]): Promise<void> {
   const existing = await getReelsList();
   const existingIds = new Set(existing.map((r) => r.id));
-  const newReels = reels.filter((r) => !existingIds.has(r.id));
+  const newReels = reels.filter((r) => !existingIds.has(r.id) && !EXCLUDED_REELS[r.id]);
   if (newReels.length === 0) return;
   const updated = [...existing, ...newReels];
   await mkdir(join(__dirname, "../../data"), { recursive: true });
