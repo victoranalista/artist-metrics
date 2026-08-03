@@ -17,18 +17,25 @@ export interface Reel {
 
 // ── yt-dlp detection ──
 
+/** Onde o winget instala o yt-dlp - o PATH so vale em shells abertos depois. */
+const WINGET_YTDLP = join(
+  process.env.LOCALAPPDATA || "",
+  "Microsoft/WinGet/Packages/yt-dlp.yt-dlp_Microsoft.Winget.Source_8wekyb3d8bbwe/yt-dlp.exe",
+);
+
 function getYtDlpCmd(): string {
-  try {
-    execSync("yt-dlp --version", { stdio: "pipe" });
-    return "yt-dlp";
-  } catch {
+  const candidates = ["yt-dlp", `"${WINGET_YTDLP}"`, "python -m yt_dlp"];
+
+  for (const cmd of candidates) {
     try {
-      execSync("python -m yt_dlp --version", { stdio: "pipe" });
-      return "python -m yt_dlp";
+      execSync(`${cmd} --version`, { stdio: "pipe" });
+      return cmd;
     } catch {
-      throw new Error("yt-dlp nao encontrado. Instale: pip install yt-dlp");
+      // Tenta o proximo
     }
   }
+
+  throw new Error("yt-dlp nao encontrado. Instale: winget install yt-dlp.yt-dlp");
 }
 
 let _ytdlpCmd: string | null = null;

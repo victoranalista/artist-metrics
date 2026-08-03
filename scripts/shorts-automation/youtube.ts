@@ -73,22 +73,43 @@ export async function uploadShort(options: UploadOptions): Promise<string> {
   return videoId;
 }
 
+/** Tres publicacoes por dia, em horario de Brasilia. */
+export const PUBLISH_HOURS_BRT = [12, 18, 21];
+
+/** Brasil nao usa horario de verao desde 2019, entao BRT e sempre UTC-3. */
+const BRT_OFFSET_HOURS = 3;
+
+/**
+ * Converte "dia D as H horas em Sao Paulo" no instante absoluto correspondente.
+ *
+ * O Y/M/D e lido no fuso de Sao Paulo e a hora e montada direto em UTC, para o
+ * resultado nao depender do fuso da maquina que executa o script. Hora 24
+ * (21h BRT) rola sozinha para o dia seguinte em UTC, que e o mesmo instante.
+ */
+export function getPublishTime(date: Date, hourBRT: number): Date {
+  const [day, month, year] = date
+    .toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
+    .split("/")
+    .map(Number);
+  return new Date(Date.UTC(year, month - 1, day, hourBRT + BRT_OFFSET_HOURS, 0, 0));
+}
+
+/** Os 3 horarios do dia que contem `date`. */
 export function getScheduleTimes(date: Date): Date[] {
-  // 12:00, 18:00, 21:00 BRT (UTC-3)
-  const hours = [12, 18, 21];
-  return hours.map((h) => {
-    const d = new Date(date);
-    d.setHours(h + 3, 0, 0, 0); // Convert BRT to UTC
-    return d;
-  });
+  return PUBLISH_HOURS_BRT.map((h) => getPublishTime(date, h));
+}
+
+/** Slot global `index` da campanha (3 por dia) contado a partir de `startDate`. */
+export function getSlotTime(startDate: Date, index: number): Date {
+  const dayOffset = Math.floor(index / PUBLISH_HOURS_BRT.length);
+  const hour = PUBLISH_HOURS_BRT[index % PUBLISH_HOURS_BRT.length];
+  return getPublishTime(new Date(startDate.getTime() + dayOffset * 86_400_000), hour);
 }
 
 export function getScheduleTimesForDays(startDate: Date, days: number): Date[] {
   const times: Date[] = [];
   for (let i = 0; i < days; i++) {
-    const day = new Date(startDate);
-    day.setDate(day.getDate() + i);
-    times.push(...getScheduleTimes(day));
+    times.push(...getScheduleTimes(new Date(startDate.getTime() + i * 86_400_000)));
   }
   return times;
 }
