@@ -33,9 +33,15 @@ const SLOTS_PER_DAY = PUBLISH_HOURS_BRT.length;
 /**
  * Nao ha teto fixo aqui de proposito: a execucao vai ate a API recusar.
  *
- * A conta "10.000 unidades / 1.600 por videos.insert = 6 uploads/dia" e o que a
- * documentacao sugere, mas na pratica este projeto passou de 24 uploads numa
- * unica execucao sem 403. Fixar 6 estaria jogando fora a maior parte da quota.
+ * O limite que realmente morde nao e o de unidades. Medido em 03/08/2026, o
+ * canal parou em 98 uploads no dia com:
+ *
+ *   Quota exceeded for quota metric 'Video Uploads'
+ *   and limit 'Video Uploads per day'
+ *
+ * Ou seja, uma cota propria de uploads/dia, separada das 10.000 unidades. A
+ * conta "10.000 / 1.600 = 6 uploads" da documentacao nao descreve este caso e
+ * desperdicaria ~94% da capacidade diaria.
  */
 
 /**
