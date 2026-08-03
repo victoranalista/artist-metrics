@@ -1,9 +1,18 @@
 import OpenAI from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+/**
+ * Construido sob demanda: montar o cliente no import faz o modulo explodir
+ * sem OPENAI_API_KEY, o que quebrava ate o --dry-run, que nao usa IA nenhuma.
+ */
+let client: OpenAI | null = null;
+
+function openaiClient(): OpenAI {
+  if (!client) client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return client;
+}
 
 export async function generateShortCaption(originalCaption: string): Promise<string> {
-  const res = await openai.chat.completions.create({
+  const res = await openaiClient().chat.completions.create({
     model: "gpt-4o-mini",
     temperature: 0.9,
     max_tokens: 100,
