@@ -21,15 +21,20 @@
  */
 
 import "dotenv/config";
-import { getReelsList, downloadReel, deleteVideo, type Reel } from "./instagram";
+import { getReelsList, downloadReel, type Reel } from "./instagram";
 import { getCaption, cachedCount } from "./caption-cache";
 import { uploadShort, getSlotTime, checkQuota, PUBLISH_HOURS_BRT } from "./youtube";
 import { getCampaign, saveCampaign, campaignStartDate, totalSlots, CAMPAIGN_END } from "./campaign";
 
 const SLOTS_PER_DAY = PUBLISH_HOURS_BRT.length;
 
-/** 10.000 unidades de quota / 1.600 por videos.insert = 6 uploads por dia. */
-const MAX_UPLOADS_PER_RUN = 6;
+/**
+ * Nao ha teto fixo aqui de proposito: a execucao vai ate a API recusar.
+ *
+ * A conta "10.000 unidades / 1.600 por videos.insert = 6 uploads/dia" e o que a
+ * documentacao sugere, mas na pratica este projeto passou de 24 uploads numa
+ * unica execucao sem 403. Fixar 6 estaria jogando fora a maior parte da quota.
+ */
 
 /**
  * Falha cedo e com nome, em vez de estourar no meio do lote com um erro opaco
@@ -87,7 +92,7 @@ async function main() {
 ║  Já agendados:      ${String(campaign.slotsFilled).padEnd(37)}║
 ║  Faltam:            ${String(remaining).padEnd(37)}║
 ║  Próximo slot:      ${nextSlot.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }).padEnd(37)}║
-║  Execuções restantes: ${String(Math.ceil(remaining / MAX_UPLOADS_PER_RUN)).padEnd(35)}║
+║  Último slot:       ${CAMPAIGN_END.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }).padEnd(37)}║
 ╚══════════════════════════════════════════════════════════════╝
     `);
     return;
@@ -182,6 +187,10 @@ async function main() {
     }
 
     try {
+      // O arquivo fica em disco de proposito. O catalogo cicla, entao cada reel
+      // reaparece varias vezes na campanha; apagar apos o upload forcava um
+      // download novo a cada repeticao. 60 reels ocupam poucas centenas de MB e
+      // `pnpm tsx ...instagram.ts` expoe cleanupVideos() para limpar no fim.
       const filePath = await downloadReel(slot.reel);
 
       const videoId = await uploadShort({
@@ -191,9 +200,6 @@ async function main() {
         scheduledAt: isImmediate ? undefined : slot.time,
       });
 
-      // Delete video immediately
-      await deleteVideo(filePath);
-
       filled = slot.index + 1;
       // Persiste a cada upload, nao no fim: se o processo morrer no meio
       // (quota, rede, maquina desligada), o video ja esta no YouTube e a
@@ -201,8 +207,9 @@ async function main() {
       await saveCampaign({ ...campaign, slotsFilled: filled });
       console.log(`  ${when} | ${videoId} | "${caption}"`);
 
-      // Gentle delay between uploads (5s) to avoid quota issues
-      await sleep(5000);
+      // Respiro curto entre uploads. A quota da YouTube API e por unidades/dia,
+      // nao por taxa, entao 5s so somavam tempo morto (~35% da execucao).
+      await sleep(1000);
     } catch (err: any) {
       console.error(`  ERRO slot ${slot.index} (${slot.reel.id}): ${err.message}`);
       if (err.code === 403 || err.message?.includes("quota")) {
