@@ -18,8 +18,14 @@ import { join } from "path";
 const DATA_DIR = join(__dirname, "../../data");
 const CAMPAIGN_FILE = join(DATA_DIR, "shorts-campaign.json");
 
-/** Ultimo dia da campanha (inclusive), em BRT. */
-export const CAMPAIGN_END = new Date("2027-12-31T23:59:59-03:00");
+/**
+ * Ultimo dia da campanha (inclusive), em BRT.
+ *
+ * Primeira fase: fechar 2026. Para estender ate o fim de 2027 basta trocar o
+ * ano aqui — os slots ja preenchidos sao preservados e a fila continua do
+ * ponto em que parou, sem reagendar nada.
+ */
+export const CAMPAIGN_END = new Date("2026-12-31T23:59:59-03:00");
 
 export interface Campaign {
   /** YYYY-MM-DD no fuso de Sao Paulo */
