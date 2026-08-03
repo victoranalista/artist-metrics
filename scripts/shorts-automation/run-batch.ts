@@ -22,7 +22,7 @@
 
 import "dotenv/config";
 import { getReelsList, downloadReel, deleteVideo, type Reel } from "./instagram";
-import { generateShortCaption } from "./captions";
+import { getCaption, cachedCount } from "./caption-cache";
 import { uploadShort, getSlotTime, checkQuota, PUBLISH_HOURS_BRT } from "./youtube";
 import { getCampaign, saveCampaign, campaignStartDate, totalSlots, CAMPAIGN_END } from "./campaign";
 
@@ -143,22 +143,28 @@ async function main() {
   // quota estourar, gerar todas de uma vez queimaria centenas de chamadas de IA
   // para slots que a quota nunca alcancaria nesta execucao.
   console.log(`[2/3] ${dryRun ? "Simulando" : "Legenda + download + upload"}...`);
+  console.log(`  ${await cachedCount()}/${catalog.length} reels ja tem legenda no cache\n`);
   let filled = cursor;
+  let newCaptions = 0;
 
   for (const slot of slots) {
     const isImmediate = slot.time <= new Date();
     const original = slot.reel.caption || "Louvor gospel emocionante";
-    // Uma falha da OpenAI nao pode derrubar o lote inteiro: cai na legenda
-    // original do reel, que ja e um texto proprio da artista.
+
     let caption: string;
     if (dryRun) {
       caption = `[IA] ${original.slice(0, 55)} #gospel #louvor #shorts`;
     } else {
       try {
-        caption = await generateShortCaption(original);
+        const result = await getCaption(slot.reel.id, original);
+        caption = result.caption;
+        if (!result.fromCache) newCaptions++;
       } catch (err: any) {
-        caption = `${original.slice(0, 60)} #gospel #louvor #shorts`.slice(0, 100);
-        console.error(`  IA falhou no slot ${slot.index} (${err.message}), usando legenda original`);
+        // Sem legenda boa nao ha upload: os videos ja agendados continuam
+        // valendo e o agendador retoma na proxima execucao.
+        console.error(`\nIA indisponivel: ${err.message}`);
+        console.error(`Parando com ${filled - cursor} upload(s) feitos nesta execucao.`);
+        break;
       }
     }
     const when = isImmediate
@@ -189,6 +195,10 @@ async function main() {
       await deleteVideo(filePath);
 
       filled = slot.index + 1;
+      // Persiste a cada upload, nao no fim: se o processo morrer no meio
+      // (quota, rede, maquina desligada), o video ja esta no YouTube e a
+      // proxima execucao precisa saber disso para nao reagendar o slot.
+      await saveCampaign({ ...campaign, slotsFilled: filled });
       console.log(`  ${when} | ${videoId} | "${caption}"`);
 
       // Gentle delay between uploads (5s) to avoid quota issues
@@ -204,7 +214,7 @@ async function main() {
     }
   }
 
-  // 5. Persist progress
+  // Slots vencidos pulados tambem precisam avancar o ponteiro, mesmo sem upload.
   if (filled > campaign.slotsFilled && !dryRun) {
     await saveCampaign({ ...campaign, slotsFilled: filled });
   }
@@ -215,6 +225,7 @@ async function main() {
 ╔══════════════════════════════════════════════════════════════╗
 ║  RESULTADO                                                   ║
 ║  ${String(filled - cursor)}/${String(count)} vídeos ${dryRun ? "simulados" : "agendados"}                                   ║
+║  Legendas novas da IA: ${String(newCaptions).padEnd(4)}                              ║
 ║  Total agendado: ${String(filled).padEnd(4)} / ${String(total).padEnd(4)}                           ║
 ║  Ainda faltam:   ${String(stillRemaining).padEnd(4)} slots                            ║
 ║  Próximo lote:   pnpm shorts:batch                           ║
