@@ -11,7 +11,7 @@
  * continuar exatamente de onde parou, sem buraco nem sobreposicao.
  */
 
-import { readFile, writeFile, mkdir } from "fs/promises";
+import { readFile, writeFile, mkdir, unlink } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 
@@ -51,6 +51,46 @@ export async function getCampaign(): Promise<Campaign> {
   }
 
   return JSON.parse(await readFile(CAMPAIGN_FILE, "utf-8")) as Campaign;
+}
+
+const LOCK_FILE = join(DATA_DIR, "shorts-batch.lock");
+
+/**
+ * Impede duas execucoes ao mesmo tempo.
+ *
+ * Duas rodadas simultaneas agendam por cima uma da outra e deixam a agenda
+ * cheia de buracos — aconteceu de fato: tres processos vivos ao mesmo tempo
+ * abriram 147 buracos. O lock guarda o PID e e ignorado se o dono ja morreu,
+ * entao um crash nao deixa a automacao travada para sempre.
+ */
+export async function acquireLock(): Promise<boolean> {
+  await mkdir(DATA_DIR, { recursive: true });
+
+  if (existsSync(LOCK_FILE)) {
+    const pid = Number((await readFile(LOCK_FILE, "utf-8")).trim());
+    if (pid && pid !== process.pid && isAlive(pid)) return false;
+  }
+
+  await writeFile(LOCK_FILE, String(process.pid));
+  return true;
+}
+
+export async function releaseLock(): Promise<void> {
+  try {
+    if (existsSync(LOCK_FILE)) await unlink(LOCK_FILE);
+  } catch {
+    // Nao critico
+  }
+}
+
+function isAlive(pid: number): boolean {
+  try {
+    // Sinal 0 nao mata: so testa se o processo existe.
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function saveCampaign(campaign: Campaign): Promise<void> {

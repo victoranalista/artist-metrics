@@ -114,6 +114,67 @@ export function getScheduleTimesForDays(startDate: Date, days: number): Date[] {
   return times;
 }
 
+/**
+ * Em que slot da campanha cai `date`, ou null se nao cair em nenhum.
+ * Inverso de getSlotTime.
+ */
+function slotIndexOf(startDate: Date, date: Date): number | null {
+  const hour = Number(
+    date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", hour12: false }),
+  );
+  const slotOfDay = PUBLISH_HOURS_BRT.indexOf(hour);
+  if (slotOfDay < 0) return null;
+
+  const ymd = (d: Date) =>
+    d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }).split("/").map(Number);
+  const [d1, m1, y1] = ymd(date);
+  const [d0, m0, y0] = ymd(startDate);
+  const days = Math.round((Date.UTC(y1, m1 - 1, d1) - Date.UTC(y0, m0 - 1, d0)) / 86_400_000);
+  if (days < 0) return null;
+
+  return days * PUBLISH_HOURS_BRT.length + slotOfDay;
+}
+
+/**
+ * Slots que ja tem video agendado, lidos do proprio canal.
+ *
+ * O YouTube e a fonte de verdade em vez de um contador local: contador quebra
+ * se o processo morrer no meio, se duas execucoes rodarem juntas ou se um
+ * upload falhar — e cada um desses casos deixa buraco silencioso na agenda.
+ * Custa ~12 unidades de quota por execucao, irrelevante perto das 1.600 de um
+ * upload, e permite reocupar buracos automaticamente.
+ */
+export async function getOccupiedSlots(startDate: Date): Promise<Set<number>> {
+  const ch = await youtube.channels.list({ part: ["contentDetails"], mine: true });
+  const uploads = ch.data.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+  if (!uploads) return new Set();
+
+  const ids: string[] = [];
+  let pageToken: string | undefined;
+  do {
+    const page = await youtube.playlistItems.list({
+      part: ["contentDetails"],
+      playlistId: uploads,
+      maxResults: 50,
+      pageToken,
+    });
+    ids.push(...(page.data.items ?? []).map((i) => i.contentDetails!.videoId!));
+    pageToken = page.data.nextPageToken ?? undefined;
+  } while (pageToken);
+
+  const occupied = new Set<number>();
+  for (let i = 0; i < ids.length; i += 50) {
+    const batch = await youtube.videos.list({ part: ["status"], id: ids.slice(i, i + 50).join(",") });
+    for (const v of batch.data.items ?? []) {
+      if (!v.status?.publishAt) continue;
+      const slot = slotIndexOf(startDate, new Date(v.status.publishAt));
+      if (slot !== null) occupied.add(slot);
+    }
+  }
+
+  return occupied;
+}
+
 export async function checkQuota(): Promise<boolean> {
   try {
     await youtube.channels.list({ part: ["snippet"], mine: true });

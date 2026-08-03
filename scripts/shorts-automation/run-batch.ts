@@ -23,8 +23,10 @@
 import "dotenv/config";
 import { getReelsList, downloadReel, type Reel } from "./instagram";
 import { getCaption, cachedCount } from "./caption-cache";
-import { uploadShort, getSlotTime, checkQuota, PUBLISH_HOURS_BRT } from "./youtube";
-import { getCampaign, saveCampaign, campaignStartDate, totalSlots, CAMPAIGN_END } from "./campaign";
+import { uploadShort, getSlotTime, checkQuota, getOccupiedSlots, PUBLISH_HOURS_BRT } from "./youtube";
+import {
+  getCampaign, campaignStartDate, totalSlots, CAMPAIGN_END, acquireLock, releaseLock,
+} from "./campaign";
 
 const SLOTS_PER_DAY = PUBLISH_HOURS_BRT.length;
 
@@ -70,49 +72,62 @@ async function main() {
 
   checkEnv(dryRun || statusOnly);
 
+  // Simulacao e status nao escrevem nada, entao nao disputam o lock.
+  if (!dryRun && !statusOnly) {
+    if (!(await acquireLock())) {
+      console.error("Já existe uma execução em andamento. Abortando para não duplicar agendamentos.");
+      process.exit(1);
+    }
+    const soltar = () => { void releaseLock(); process.exit(130); };
+    process.on("SIGINT", soltar);
+    process.on("SIGTERM", soltar);
+  }
+
   const catalog = await getReelsList();
   const campaign = await getCampaign();
   const start = campaignStartDate(campaign);
   const total = totalSlots(campaign, SLOTS_PER_DAY);
-  const remaining = total - campaign.slotsFilled;
 
   if (catalog.length === 0) {
     console.error("Catalogo de reels vazio. Rode o scraper antes.");
     process.exit(1);
   }
 
+  // Fonte de verdade e o canal, nao um contador local.
+  const occupied = dryRun ? new Set<number>() : await getOccupiedSlots(start);
+  const now = new Date();
+
+  // Slots livres e ainda no futuro — inclui buracos deixados por falhas
+  // anteriores, que assim voltam a ser preenchidos.
+  const pending: number[] = [];
+  for (let i = 0; i < total; i++) {
+    if (occupied.has(i)) continue;
+    if (getSlotTime(start, i) <= now) continue;
+    pending.push(i);
+  }
+
   if (statusOnly) {
-    const nextSlot = getSlotTime(start, campaign.slotsFilled);
     console.log(`
 ╔══════════════════════════════════════════════════════════════╗
 ║  STATUS - Campanha de Shorts                                 ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  Reels no catálogo: ${String(catalog.length).padEnd(37)}║
 ║  Slots totais:      ${String(total).padEnd(37)}║
-║  Já agendados:      ${String(campaign.slotsFilled).padEnd(37)}║
-║  Faltam:            ${String(remaining).padEnd(37)}║
-║  Próximo slot:      ${nextSlot.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }).padEnd(37)}║
+║  Já agendados:      ${String(occupied.size).padEnd(37)}║
+║  Faltam:            ${String(pending.length).padEnd(37)}║
+║  Próximo slot:      ${(pending[0] !== undefined ? getSlotTime(start, pending[0]).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—").padEnd(37)}║
 ║  Último slot:       ${CAMPAIGN_END.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }).padEnd(37)}║
 ╚══════════════════════════════════════════════════════════════╝
     `);
     return;
   }
 
-  if (remaining <= 0) {
-    console.log(`Campanha completa: ${total} slots agendados até ${CAMPAIGN_END.toLocaleDateString("pt-BR")}.`);
+  if (pending.length === 0) {
+    console.log(`Campanha completa: ${occupied.size} slots agendados até ${CAMPAIGN_END.toLocaleDateString("pt-BR")}.`);
     return;
   }
 
-  // Slots vencidos: mantem so o mais recente para publicar agora, pula o resto.
-  const now = new Date();
-  let cursor = campaign.slotsFilled;
-  let skipped = 0;
-  while (cursor + 1 < total && getSlotTime(start, cursor + 1) <= now) {
-    cursor++;
-    skipped++;
-  }
-
-  const count = Math.min(batchSize, total - cursor);
+  const count = Math.min(batchSize, pending.length);
 
   console.log(`
 ╔══════════════════════════════════════════════════════════════╗
@@ -120,12 +135,13 @@ async function main() {
 ║  ${dryRun ? "MODO SIMULAÇÃO" : "MODO PRODUÇÃO"}                                           ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  Lote: ${String(count).padEnd(3)} vídeos | 3/dia às 12:00, 18:00, 21:00 BRT     ║
-║  Agendados: ${String(cursor).padEnd(4)} / ${String(total).padEnd(4)} | Catálogo: ${String(catalog.length).padEnd(3)} reels        ║
+║  Agendados: ${String(occupied.size).padEnd(4)} / ${String(total).padEnd(4)} | Catálogo: ${String(catalog.length).padEnd(3)} reels        ║
 ╚══════════════════════════════════════════════════════════════╝
   `);
 
-  if (skipped > 0) {
-    console.log(`${skipped} slot(s) vencido(s) pulado(s) para realinhar a campanha.\n`);
+  const buracos = pending.filter((i) => i < Math.max(...occupied, 0)).length;
+  if (buracos > 0) {
+    console.log(`${buracos} buraco(s) de execuções anteriores serão reocupados primeiro.\n`);
   }
 
   // 1. Check YouTube API
@@ -137,10 +153,11 @@ async function main() {
   }
 
   // 2. O catalogo cicla: slot N usa o reel N % catalogo.
-  const slots = Array.from({ length: count }, (_, k) => {
-    const index = cursor + k;
-    return { index, time: getSlotTime(start, index), reel: catalog[index % catalog.length] };
-  });
+  const slots = pending.slice(0, count).map((index) => ({
+    index,
+    time: getSlotTime(start, index),
+    reel: catalog[index % catalog.length],
+  }));
 
   // 3. Legenda + download + upload, um slot por vez.
   //
@@ -149,11 +166,11 @@ async function main() {
   // para slots que a quota nunca alcancaria nesta execucao.
   console.log(`[2/3] ${dryRun ? "Simulando" : "Legenda + download + upload"}...`);
   console.log(`  ${await cachedCount()}/${catalog.length} reels ja tem legenda no cache\n`);
-  let filled = cursor;
+  let done = 0;
   let newCaptions = 0;
 
   for (const slot of slots) {
-    const isImmediate = slot.time <= new Date();
+    // Slots do passado ja foram filtrados: aqui tudo e agendamento futuro.
     const original = slot.reel.caption || "Louvor gospel emocionante";
 
     let caption: string;
@@ -168,21 +185,19 @@ async function main() {
         // Sem legenda boa nao ha upload: os videos ja agendados continuam
         // valendo e o agendador retoma na proxima execucao.
         console.error(`\nIA indisponivel: ${err.message}`);
-        console.error(`Parando com ${filled - cursor} upload(s) feitos nesta execucao.`);
+        console.error(`Parando com ${done} upload(s) feitos nesta execucao.`);
         break;
       }
     }
-    const when = isImmediate
-      ? "AGORA"
-      : slot.time.toLocaleString("pt-BR", {
-          timeZone: "America/Sao_Paulo",
-          day: "2-digit", month: "2-digit", year: "numeric",
-          hour: "2-digit", minute: "2-digit",
-        });
+    const when = slot.time.toLocaleString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    });
 
     if (dryRun) {
-      console.log(`  [DRY] ${when} | ${slot.reel.id} | "${caption}"`);
-      filled = slot.index + 1;
+      console.log(`  [DRY] slot ${slot.index} | ${when} | ${slot.reel.id} | "${caption}"`);
+      done++;
       continue;
     }
 
@@ -197,15 +212,11 @@ async function main() {
         filePath,
         title: caption,
         description: buildDescription(slot.reel, caption),
-        scheduledAt: isImmediate ? undefined : slot.time,
+        scheduledAt: slot.time,
       });
 
-      filled = slot.index + 1;
-      // Persiste a cada upload, nao no fim: se o processo morrer no meio
-      // (quota, rede, maquina desligada), o video ja esta no YouTube e a
-      // proxima execucao precisa saber disso para nao reagendar o slot.
-      await saveCampaign({ ...campaign, slotsFilled: filled });
-      console.log(`  ${when} | ${videoId} | "${caption}"`);
+      done++;
+      console.log(`  slot ${slot.index} | ${when} | ${videoId} | "${caption}"`);
 
       // Respiro curto entre uploads. A quota da YouTube API e por unidades/dia,
       // nao por taxa, entao 5s so somavam tempo morto (~35% da execucao).
@@ -221,20 +232,15 @@ async function main() {
     }
   }
 
-  // Slots vencidos pulados tambem precisam avancar o ponteiro, mesmo sem upload.
-  if (filled > campaign.slotsFilled && !dryRun) {
-    await saveCampaign({ ...campaign, slotsFilled: filled });
-  }
-
-  const stillRemaining = total - filled;
+  const agendadoAgora = occupied.size + done;
 
   console.log(`
 ╔══════════════════════════════════════════════════════════════╗
 ║  RESULTADO                                                   ║
-║  ${String(filled - cursor)}/${String(count)} vídeos ${dryRun ? "simulados" : "agendados"}                                   ║
+║  ${String(done)}/${String(count)} vídeos ${dryRun ? "simulados" : "agendados"}                                   ║
 ║  Legendas novas da IA: ${String(newCaptions).padEnd(4)}                              ║
-║  Total agendado: ${String(filled).padEnd(4)} / ${String(total).padEnd(4)}                           ║
-║  Ainda faltam:   ${String(stillRemaining).padEnd(4)} slots                            ║
+║  Total agendado: ${String(agendadoAgora).padEnd(4)} / ${String(total).padEnd(4)}                           ║
+║  Ainda faltam:   ${String(total - agendadoAgora).padEnd(4)} slots                            ║
 ║  Próximo lote:   pnpm shorts:batch                           ║
 ╚══════════════════════════════════════════════════════════════╝
   `);
@@ -255,7 +261,9 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-main().catch((err) => {
-  console.error("Fatal:", err);
-  process.exit(1);
-});
+main()
+  .catch((err) => {
+    console.error("Fatal:", err);
+    process.exitCode = 1;
+  })
+  .finally(releaseLock);
