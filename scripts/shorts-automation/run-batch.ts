@@ -45,6 +45,29 @@ const SLOTS_PER_DAY = PUBLISH_HOURS_BRT.length;
  * desperdicaria ~94% da capacidade diaria.
  */
 
+/** Falhas isoladas seguidas que fazem o lote desistir. */
+const MAX_FALHAS_SEGUIDAS = 3;
+
+/**
+ * O YouTube recusa upload por teto de duas formas, com mensagens diferentes:
+ *
+ *   "Quota exceeded for quota metric 'Video Uploads'..."  -> cota da API
+ *   "The user has exceeded the number of videos they may upload."  -> teto do canal
+ *
+ * A segunda nao tem a palavra "quota" nem vem como 403, entao um filtro so por
+ * esses dois sinais deixava o lote seguir e falhar em todos os slots restantes,
+ * baixando cada reel de novo a cada tentativa.
+ */
+function limiteDeUpload(err: any): boolean {
+  const msg = String(err?.message ?? "").toLowerCase();
+  return (
+    err?.code === 403 ||
+    msg.includes("quota") ||
+    msg.includes("exceeded the number of videos") ||
+    msg.includes("uploadlimitexceeded")
+  );
+}
+
 /**
  * Falha cedo e com nome, em vez de estourar no meio do lote com um erro opaco
  * da API. O dry-run nao precisa de credencial nenhuma: simula offline.
@@ -194,6 +217,7 @@ async function main() {
   console.log(`  ${await cachedCount()}/${catalog.length} reels ja tem legenda no cache\n`);
   let done = 0;
   let newCaptions = 0;
+  let seguidas = 0;
 
   for (const slot of slots) {
     // Slots do passado ja foram filtrados: aqui tudo e agendamento futuro.
@@ -245,13 +269,22 @@ async function main() {
       await sleep(1000);
     } catch (err: any) {
       console.error(`  ERRO slot ${slot.index} (${slot.reel.id}): ${err.message}`);
-      if (err.code === 403 || err.message?.includes("quota")) {
-        console.error("  Quota excedida! Parando.");
+
+      if (limiteDeUpload(err)) {
+        console.error("  Limite de upload atingido. Parando — o agendador retoma amanhã.");
         break;
       }
-      // Continue with next on other errors
+
+      // Falha isolada (rede, Instagram fora do ar) nao deve matar o lote, mas
+      // uma sequencia delas significa que insistir so gasta tempo e banda.
+      if (++seguidas >= MAX_FALHAS_SEGUIDAS) {
+        console.error(`  ${seguidas} falhas seguidas. Parando.`);
+        break;
+      }
       await sleep(3000);
+      continue;
     }
+    seguidas = 0;
   }
 
   const agendadoAgora = occupied.size + done;
