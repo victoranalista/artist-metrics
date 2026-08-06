@@ -163,13 +163,25 @@ export async function getOccupiedSlots(startDate: Date): Promise<Set<number>> {
   } while (pageToken);
 
   const occupied = new Set<number>();
+  const colisoes: number[] = [];
+
   for (let i = 0; i < ids.length; i += 50) {
     const batch = await youtube.videos.list({ part: ["status"], id: ids.slice(i, i + 50).join(",") });
     for (const v of batch.data.items ?? []) {
       if (!v.status?.publishAt) continue;
       const slot = slotIndexOf(startDate, new Date(v.status.publishAt));
-      if (slot !== null) occupied.add(slot);
+      if (slot === null) continue;
+      if (occupied.has(slot)) colisoes.push(slot);
+      occupied.add(slot);
     }
+  }
+
+  // A varredura ja passou por tudo, entao avisar sai de graca. Duas duplicatas
+  // reais ja escaparam por falta desse aviso: quando o indice do YouTube esta
+  // atrasado, dois videos acabam no mesmo horario sem nada reclamar.
+  if (colisoes.length > 0) {
+    console.warn(`ATENÇÃO: ${colisoes.length} horário(s) com mais de um vídeo agendado (slots ${colisoes.join(", ")}).`);
+    console.warn("  Desagende os extras no YouTube Studio antes que publiquem.");
   }
 
   return occupied;
