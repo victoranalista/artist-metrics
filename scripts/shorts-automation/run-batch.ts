@@ -23,6 +23,7 @@
 import "dotenv/config";
 import { getReelsList, downloadReel, refreshCatalog, type Reel } from "./instagram";
 import { getCaption, cachedCount } from "./caption-cache";
+import { recordSlot, recordedSlots } from "./slot-log";
 import { uploadShort, getSlotTime, checkQuota, getOccupiedSlots, PUBLISH_HOURS_BRT } from "./youtube";
 import {
   getCampaign, campaignStartDate, campaignEndDate, totalSlots, extendCampaign,
@@ -128,8 +129,11 @@ async function main() {
     process.exit(1);
   }
 
-  // Fonte de verdade e o canal, nao um contador local.
-  const occupied = dryRun ? new Set<number>() : await getOccupiedSlots(start);
+  // Canal + registro local: a playlist de uploads atrasa a indexar, e sem o
+  // registro os slots recem-preenchidos parecem livres e recebem outro video.
+  const occupied = dryRun
+    ? new Set<number>()
+    : new Set<number>([...(await getOccupiedSlots(start)), ...(await recordedSlots())]);
   const now = new Date();
 
   /** Slots livres e ainda no futuro — inclui buracos de falhas anteriores. */
@@ -261,6 +265,9 @@ async function main() {
         scheduledAt: slot.time,
       });
 
+      // Antes de qualquer outra coisa: se o processo morrer agora, o slot ja
+      // esta preenchido no YouTube e o proximo lote precisa saber disso.
+      await recordSlot(slot.index, videoId);
       done++;
       console.log(`  slot ${slot.index} | ${when} | ${videoId} | "${caption}"`);
 
