@@ -23,7 +23,8 @@
     "shorts:status": "tsx scripts/shorts-automation/run-batch.ts --status",
     "shorts:scheduler": "tsx scripts/shorts-automation/scheduler.ts",
     "shorts:unschedule": "tsx scripts/shorts-automation/unschedule-campaign.ts",
-    "shorts:unschedule:dry": "tsx scripts/shorts-automation/unschedule-campaign.ts --dry-run"
+    "shorts:unschedule:dry": "tsx scripts/shorts-automation/unschedule-campaign.ts --dry-run",
+    "shorts:diagnose": "tsx scripts/shorts-automation/diagnose-blocks.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
