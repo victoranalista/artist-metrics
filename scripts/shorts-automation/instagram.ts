@@ -54,6 +54,8 @@ const EXCLUDED_REELS: Record<string, string> = {
   DQnI_eODnbt: "publicidade paga (salao Espelicutte)",
   DPtjn5QDZHD: "meme, marcado #casamento #trend #meme #reels",
   DQNMwaHDmKw: "vlog de viagem",
+  DQH8g3ZEX6H: "bloqueado no mundo todo pelo Content ID",
+  DPxcXk4jIE5: "bloqueado pelo Content ID (Russia)",
 };
 
 /** Known reels from the profile - updated by scrape or manually */
