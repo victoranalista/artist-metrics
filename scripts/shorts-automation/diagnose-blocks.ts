@@ -30,6 +30,7 @@ interface Diagnostico {
   id: string;
   titulo: string;
   privacidade: string;
+  agendado: boolean;
   uploadStatus: string;
   motivoRejeicao?: string;
   paisesBloqueados?: string[];
@@ -61,14 +62,16 @@ async function main() {
       id: unicos.slice(i, i + 50).join(","),
     });
     for (const v of lote.data.items ?? []) {
-      // So interessa o que ja esta no ar; agendado nao afeta alcance.
-      if (v.status?.publishAt) continue;
+      // Agendado tambem entra: o Content ID age no upload, nao na publicacao,
+      // entao um video ainda privado ja pode estar bloqueado. Ignorar esses
+      // subestimava a contagem.
 
       const bloqueados = v.contentDetails?.regionRestriction?.blocked ?? undefined;
       const d: Diagnostico = {
         id: v.id!,
         titulo: v.snippet?.title ?? "",
         privacidade: v.status?.privacyStatus ?? "?",
+        agendado: !!v.status?.publishAt,
         uploadStatus: v.status?.uploadStatus ?? "?",
         motivoRejeicao: v.status?.rejectionReason ?? undefined,
         paisesBloqueados: bloqueados,
