@@ -78,8 +78,9 @@ async function levantar(): Promise<Alvo[]> {
 
       const publico = v.status?.privacyStatus === "public";
       const agendado = v.status?.publishAt ?? undefined;
-      // Privado e sem agendamento ja esta resolvido.
-      if (!publico && !agendado) continue;
+      // So os agendados. O que ja publicou fica no ar por decisao do usuario:
+      // despublicar em massa apaga historico e metricas de video que ja rodou.
+      if (!agendado) continue;
 
       alvos.push({ id: v.id!, titulo, publico, agendadoPara: agendado });
     }
