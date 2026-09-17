@@ -9,8 +9,10 @@
  * So toca video com a assinatura da campanha (descricao apontando para o reel
  * de origem no Instagram). Conteudo proprio do canal nunca entra na lista.
  *
- * Ordem importa: os PUBLICOS saem primeiro. Sao eles que afetam o alcance hoje;
- * os agendados ainda estao privados e so fariam mal quando publicassem.
+ * Ordem importa: os AGENDADOS saem primeiro, do mais proximo para o mais
+ * distante. Eles publicam sozinhos todo dia e pioram o quadro enquanto a fila
+ * anda; um video ja publico esta parado, e o estrago dele nao aumenta. Tratar
+ * publico primeiro deixou a fila publicando por dois dias seguidos.
  *
  * A cota e o gargalo: videos.update custa 50 unidades e o teto diario e 10.000,
  * entao cabem ~198 por execucao. O progresso fica em disco e a execucao seguinte
@@ -83,10 +85,12 @@ async function levantar(): Promise<Alvo[]> {
     }
   }
 
-  // Publicos primeiro; depois os agendados, do mais proximo para o mais distante.
+  // Agendados primeiro, do mais proximo; publicos depois.
   return alvos.sort((a, b) => {
-    if (a.publico !== b.publico) return a.publico ? -1 : 1;
-    return (a.agendadoPara ?? "").localeCompare(b.agendadoPara ?? "");
+    const agA = !!a.agendadoPara, agB = !!b.agendadoPara;
+    if (agA !== agB) return agA ? -1 : 1;
+    if (agA && agB) return a.agendadoPara!.localeCompare(b.agendadoPara!);
+    return 0;
   });
 }
 
@@ -113,7 +117,7 @@ async function main() {
   console.log("");
 
   if (dryRun) {
-    console.log(`[DRY] tornaria privados ${alvos.length} vídeo(s); os ${publicos.length} públicos sairiam primeiro.`);
+    console.log(`[DRY] tornaria privados ${alvos.length} vídeo(s); os agendados sairiam primeiro.`);
     return;
   }
 
